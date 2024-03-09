@@ -1,0 +1,15 @@
+[package]
+name = "sokoban"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.35"
+rocket = { version = "0.5.0", features = ["json"] }
+serde = "1.0.148"
+shuttle-rocket = "0.41.0"
+shuttle-runtime = "0.41.0"
+shuttle-shared-db = { version = "0.41.0", features = ["postgres", "sqlx"] }
+sqlx = { version = "0.7.1", features = ["macros"] }
+tokio = "1.26.0"
+uuid = "1.7.0"
