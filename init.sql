@@ -1,19 +1,23 @@
+-- initial_setup.sql
 -- here be dragons
 -- drop table if exists punches, users, departments cascade;
--- CREATE TYPE punch AS ENUM('in', 'out'); -- comment out
--- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- here end dragons
 
--- make departments table --
+-- Extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Enums
+-- Uncomment if you have not created the punch enum yet.
+-- CREATE TYPE punch AS ENUM('in', 'out');
+
+-- Departments Table
 CREATE TABLE IF NOT EXISTS departments (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- INSERT INTO departments(name) VALUES ('Default'); -- comment out
-
--- make users table --
+-- Users Table
 CREATE TABLE IF NOT EXISTS users (
   user_id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255) NOT NULL,
@@ -22,7 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- create punch records table --
+-- Punches Table
 CREATE TABLE IF NOT EXISTS punches (
   id SERIAL PRIMARY KEY,
   user_id VARCHAR(36) REFERENCES users(user_id),
@@ -30,15 +34,5 @@ CREATE TABLE IF NOT EXISTS punches (
   punch_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- create timesheet table --
--- CREATE VIEW punches_with_user AS
--- SELECT
---     p.user_id,
---     p.in_out,
---     p.punch_time,
---     u.name AS user_name
--- FROM
---     punches p
--- JOIN
---     users u ON p.user_id = u.user_id;
--- 
+-- Views, Functions, and other database objects that are part of the initial setup.
+
