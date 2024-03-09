@@ -2147,6 +2147,7 @@ dependencies = [
  "chrono",
  "rocket",
  "serde",
+ "serde_json",
  "shuttle-rocket",
  "shuttle-runtime",
  "shuttle-shared-db",

@@ -3,8 +3,8 @@ extern crate rocket;
 use chrono::NaiveDateTime;
 use rocket::response::status::BadRequest;
 use rocket::serde::json::Json;
+use rocket::serde::{Deserialize, Serialize};
 use rocket::State;
-use serde::{Deserialize, Serialize};
 use shuttle_runtime::CustomError;
 use sqlx::{Executor, FromRow, PgPool};
 use uuid::Uuid;
@@ -19,10 +19,20 @@ async fn list(state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<Stri
     Ok(Json(list))
 }
 
+// list all punches
+#[get("/")]
+async fn punches(state: &State<MyState>) -> Result<Json<Vec<PunchRecord>>, BadRequest<String>> {
+    let list = sqlx::query_as("SELECT * FROM punch_records")
+        .fetch_all(&state.pool)
+        .await
+        .map_err(|e| BadRequest(e.to_string()))?;
+    Ok(Json(list))
+}
+
 // get one user
 #[get("/<id>")]
-async fn retrieve(id: i32, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
-    let user = sqlx::query_as("SELECT * FROM users WHERE id = $1")
+async fn retrieve(id: String, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
+    let user = sqlx::query_as("SELECT * FROM users WHERE user_id = $1")
         .bind(id)
         .fetch_one(&state.pool)
         .await
@@ -34,24 +44,22 @@ async fn retrieve(id: i32, state: &State<MyState>) -> Result<Json<User>, BadRequ
 // create a new user
 #[post("/", data = "<data>")]
 async fn add(data: Json<User>, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
-    let uuid = Uuid::new_v4().to_string();
-    eprintln!("uuid is {}", uuid);
+    let user_id = Uuid::new_v4();
     let user =
-        sqlx::query_as("INSERT INTO users (name, email, uuid) VALUES ($1, $2, $3) RETURNING *")
+        sqlx::query_as("INSERT INTO users (name, email, user_id) VALUES ($1, $2, $3) RETURNING *")
             .bind(&data.name)
             .bind(&data.email)
-            .bind(&uuid)
+            .bind(user_id.to_string())
             .fetch_one(&state.pool)
             .await
             .map_err(|e| BadRequest(e.to_string()))?;
-
     Ok(Json(user))
 }
 
 // punch user in or out
 #[post("/<id>", data = "<data>")]
 async fn punch(
-    id: i32,
+    id: String,
     data: Json<PunchRecord>,
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
@@ -70,7 +78,7 @@ async fn punch(
 // get users last punch
 #[get("/<id>/last_punch")]
 async fn last_punch(
-    id: i32,
+    id: String,
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
     let punch =
@@ -85,8 +93,8 @@ async fn last_punch(
 
 // get all punch records for a user
 #[get("/<id>/punches")]
-async fn list_punches(
-    id: i32,
+async fn get_user_punches(
+    id: String,
     state: &State<MyState>,
 ) -> Result<Json<Vec<PunchRecord>>, BadRequest<String>> {
     let punch = sqlx::query_as("SELECT * FROM punch_records WHERE user_id = $1")
@@ -111,8 +119,8 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let state = MyState { pool };
     let rocket = rocket::build()
         .mount("/user", routes![retrieve, add])
-        .mount("/list", routes![list])
-        .mount("/punch", routes![punch, last_punch, list_punches])
+        .mount("/list", routes![list, punches])
+        .mount("/punch", routes![punch, last_punch, get_user_punches])
         .manage(state);
 
     Ok(rocket.into())
@@ -127,7 +135,6 @@ enum InOut {
 
 #[derive(Deserialize, Serialize, FromRow)]
 struct PunchRecord {
-    id: i32,
     in_out: InOut,
     punch_time: Option<NaiveDateTime>,
 }
@@ -136,5 +143,5 @@ struct PunchRecord {
 struct User {
     name: String,
     email: String,
-    uuid: Option<String>,
+    user_id: Option<String>,
 }
