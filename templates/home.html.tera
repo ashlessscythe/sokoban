@@ -9,14 +9,14 @@
     <form action="/api/endpoint" method="post">
         <input type="text" name="input1" placeholder="Enter something..." required>
         <button type="submit">Send POST Request</button>
+    </form>
+
         <!-- list of users -->
         <ul>
             {% for user in users %}
             <li>{{ user.name }}</li>
             {% endfor %}
         </ul>
-    </form>
-
     <!-- More forms or buttons to interact with other API endpoints -->
 
     <script>

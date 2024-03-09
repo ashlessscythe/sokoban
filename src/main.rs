@@ -8,6 +8,7 @@ use rocket::State;
 use rocket_dyn_templates::Template;
 use shuttle_runtime::CustomError;
 use sqlx::{Executor, FromRow, PgPool};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 // list of all users
@@ -71,13 +72,12 @@ async fn punch(
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
     // insert punch into db
-    let punch =
-        sqlx::query_as("INSERT INTO punch_records (user_id, in_out) VALUES ($1, $2) RETURNING *")
-            .bind(id)
-            .bind(&data.in_out)
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| BadRequest(e.to_string()))?;
+    let punch = sqlx::query_as("INSERT INTO punches (user_id, in_out) VALUES ($1, $2) RETURNING *")
+        .bind(id)
+        .bind(&data.in_out)
+        .fetch_one(&state.pool)
+        .await
+        .map_err(|e| BadRequest(e.to_string()))?;
 
     Ok(Json(punch))
 }
@@ -88,12 +88,11 @@ async fn last_punch(
     id: String,
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
-    let punch =
-        sqlx::query_as("SELECT * FROM punch_records WHERE user_id = $1 ORDER BY id DESC LIMIT 1")
-            .bind(id)
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| BadRequest(e.to_string()))?;
+    let punch = sqlx::query_as("SELECT * FROM punches WHERE user_id = $1 ORDER BY id DESC LIMIT 1")
+        .bind(id)
+        .fetch_one(&state.pool)
+        .await
+        .map_err(|e| BadRequest(e.to_string()))?;
 
     Ok(Json(punch))
 }
@@ -104,7 +103,7 @@ async fn get_user_punches(
     id: String,
     state: &State<MyState>,
 ) -> Result<Json<Vec<PunchRecord>>, BadRequest<String>> {
-    let punch = sqlx::query_as("SELECT * FROM punch_records WHERE user_id = $1")
+    let punch = sqlx::query_as("SELECT * FROM punches WHERE user_id = $1")
         .bind(id)
         .fetch_all(&state.pool)
         .await
@@ -120,7 +119,11 @@ struct MyState {
 #[get("/home")]
 async fn home(state: &State<MyState>) -> Result<Template, BadRequest<String>> {
     match user_list(state).await {
-        Ok(users) => Ok(Template::render("home", users.into_inner())),
+        Ok(users) => {
+            let mut context = HashMap::new();
+            context.insert("users", users.into_inner());
+            Ok(Template::render("home", &context))
+        }
         Err(e) => Err(e),
     }
 }
