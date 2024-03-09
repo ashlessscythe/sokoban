@@ -74,7 +74,7 @@ async fn last_punch(
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
     let punch =
-        sqlx::query_as("SELECT * FROM punch_records WHERE id = $1 ORDER BY id DESC LIMIT 1")
+        sqlx::query_as("SELECT * FROM punch_records WHERE user_id = $1 ORDER BY id DESC LIMIT 1")
             .bind(id)
             .fetch_one(&state.pool)
             .await
@@ -129,7 +129,7 @@ enum InOut {
 struct PunchRecord {
     id: i32,
     in_out: InOut,
-    punch_time: String,
+    punch_time: Option<NaiveDateTime>,
 }
 
 #[derive(Deserialize, Serialize, FromRow)]
