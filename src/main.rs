@@ -10,8 +10,8 @@ use sqlx::{Executor, FromRow, PgPool};
 use uuid::Uuid;
 
 // list of all users
-#[get("/")]
-async fn list(state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<String>> {
+#[get("/users")]
+async fn user_list(state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<String>> {
     let list = sqlx::query_as("SELECT * FROM users")
         .fetch_all(&state.pool)
         .await
@@ -20,8 +20,10 @@ async fn list(state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<Stri
 }
 
 // list all punches
-#[get("/")]
-async fn punches(state: &State<MyState>) -> Result<Json<Vec<PunchRecord>>, BadRequest<String>> {
+#[get("/punches")]
+async fn punches_list(
+    state: &State<MyState>,
+) -> Result<Json<Vec<PunchRecord>>, BadRequest<String>> {
     let list = sqlx::query_as("SELECT * FROM punch_records")
         .fetch_all(&state.pool)
         .await
@@ -119,7 +121,7 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let state = MyState { pool };
     let rocket = rocket::build()
         .mount("/user", routes![retrieve, add])
-        .mount("/list", routes![list, punches])
+        .mount("/list", routes![user_list, punches_list])
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .manage(state);
 
