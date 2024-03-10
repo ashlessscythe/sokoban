@@ -90,13 +90,21 @@ async fn last_punch(
     id: String,
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
-    let punch = sqlx::query_as("SELECT * FROM punches WHERE user_id = $1 ORDER BY id DESC LIMIT 1")
-        .bind(id)
-        .fetch_one(&state.pool)
-        .await
-        .map_err(|e| BadRequest(e.to_string()))?;
+    let punch = sqlx::query_as::<_, PunchRecord>(
+        "SELECT * FROM punches WHERE user_id = $1 ORDER BY id DESC LIMIT 1",
+    )
+    .bind(id)
+    .fetch_optional(&state.pool)
+    .await;
 
-    Ok(Json(punch))
+    match punch {
+        Ok(Some(punch)) => Ok(Json(punch)),
+        Ok(None) => Ok(Json(PunchRecord {
+            in_out: InOut::None,
+            punch_time: None,
+        })),
+        Err(e) => Err(BadRequest(e.to_string())),
+    }
 }
 
 // get all punch records for a user
@@ -201,6 +209,7 @@ async fn initialize_db(pool: &PgPool) -> Result<(), CustomError> {
 enum InOut {
     In,
     Out,
+    None,
 }
 
 #[derive(Deserialize, Serialize, FromRow)]

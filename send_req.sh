@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # define url
-# URL="http://localhost:8000"
-URL="https://localhost:8000"
+URL="http://localhost:8000"
+# URL="https://sokoban.shuttleapp.rs"
 
 # if no args provided print usage
 if [ $# -eq 0 ]; then
@@ -34,6 +34,6 @@ for ((c = 1; c <= $COUNT; c++)); do
 	echo "Sending $TYPE request to $URL/$ENDPOINT with name: $NAME, email: $EMAIL, user_id: $ID"
 	curl -X $TYPE $URL/$ENDPOINT -d '{"name": "'$NAME'", "email": "'$EMAIL'", "user_id":"'$ID'"}'
 	# send random either In or Out
-	INOUT=$(shuf -n 1 -e In Out)
-	curl -X $TYPE $URL/punch/$ID -d '{"in_out":"'$INOUT'"}'
+	# INOUT=$(shuf -n 1 -e In Out)
+	# curl -X $TYPE $URL/punch/$ID -d '{"in_out":"'$INOUT'"}'
 done
