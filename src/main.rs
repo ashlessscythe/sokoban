@@ -1,7 +1,9 @@
 #[macro_use]
 extern crate rocket;
 use chrono::NaiveDateTime;
+use rocket::fs::FileServer;
 use rocket::response::status::BadRequest;
+use rocket::response::Redirect;
 use rocket::serde::json::Json;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::State;
@@ -115,32 +117,55 @@ struct MyState {
     pool: PgPool,
 }
 
+// redirect to home
+#[get("/")]
+fn index() -> Redirect {
+    Redirect::to(uri!("/home"))
+}
+
 // home route
 #[get("/home")]
-async fn home(state: &State<MyState>) -> Result<Template, BadRequest<String>> {
+fn home() -> Result<Template, BadRequest<String>> {
+    let mut context = HashMap::new();
+    context.insert("title", "Home");
+    Ok(Template::render("home", &context))
+}
+
+// user list route
+#[get("/userlist")]
+async fn userlist(state: &State<MyState>) -> Result<Template, BadRequest<String>> {
     match user_list(state).await {
         Ok(users) => {
             let mut context = HashMap::new();
             context.insert("users", users.into_inner());
-            Ok(Template::render("home", &context))
+            Ok(Template::render("userlist", &context))
         }
         Err(e) => Err(e),
     }
 }
 
+// register route
+#[get("/register")]
+fn register() -> Result<Template, BadRequest<String>> {
+    let mut context = HashMap::new();
+    context.insert("title", "Register");
+    Ok(Template::render("register", &context))
+}
+
 // routes
 #[shuttle_runtime::main]
 async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::ShuttleRocket {
-    if let Err(e) = initialize_db(&pool).await {
-        eprintln!("Database initialization failed: {:?}", e);
-    }
+    // if let Err(e) = initialize_db(&pool).await {
+    //     eprintln!("Database initialization failed: {:?}", e);
+    // }
 
     let state = MyState { pool };
     let rocket = rocket::build()
         .mount("/user", routes![retrieve, add])
         .mount("/list", routes![user_list, punches_list])
         .mount("/punch", routes![punch, last_punch, get_user_punches])
-        .mount("/", routes![home])
+        .mount("/static", FileServer::from("static"))
+        .mount("/", routes![index, home, userlist, register])
         .attach(Template::fairing())
         .manage(state);
 
@@ -150,24 +175,12 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
 // Define the function to initialize your database
 async fn initialize_db(pool: &PgPool) -> Result<(), CustomError> {
     let init_sql = include_str!("../init.sql");
-    let anytime_sql = include_str!("../anytime.sql");
 
     // Start a transaction
     let mut transaction = pool.begin().await.map_err(CustomError::new)?;
 
     // Execute init.sql
     for command in init_sql.split(';') {
-        let command = command.trim();
-        if !command.is_empty() {
-            transaction
-                .execute(command)
-                .await
-                .map_err(CustomError::new)?;
-        }
-    }
-
-    // Execute anytime.sql
-    for command in anytime_sql.split(';') {
         let command = command.trim();
         if !command.is_empty() {
             transaction

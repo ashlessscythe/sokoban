@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # define url
-URL="http://localhost:8000"
+# URL="http://localhost:8000"
+URL="https://sokoban.shuttleapp.rs"
 
 # if no args provided print usage
 if [ $# -eq 0 ]; then

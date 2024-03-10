@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <h1>Register</h1>
+    <form action="/user" method="post">
+      <!-- place these vertically-->
+      <div class="form-container">
+          <label for="name">Name</label>
+            <input type="text" name="name" placeholder="Enter something..." required>
+          <label for="email">Email</label>
+            <input type="email" name="email" placeholder="Email" required>
+      </div>
+      <button type="submit">Send POST Request</button>
+    </form>
+    <!-- More forms or buttons to interact with other API endpoints -->
+
+    <script>
+        // Handle sending POST request
+        const form = document.querySelector('form');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const name = form.elements['name'].value;
+            const email = form.elements['email'].value;
+
+            const response = await fetch('/user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email })
+            });
+
+            if (response.ok) {
+                // Assuming the server responds with the created user
+                const newUser = await response.json();
+
+                // Append the new user to the list
+                const userList = document.querySelector('ul');
+                const li = document.createElement('li');
+                li.textContent = newUser.name; // Adjust depending on your response structure
+                userList.appendChild(li);
+
+                // Optionally, clear the form fields
+                form.reset();
+            } else {
+                console.error('Failed to create user:', response.statusText);
+                // Handle error (show message to the user, etc.)
+            }
+        });
+    </script>
+</body>
+</html>
+
+<style>
+    .form-container {
+        display: flex;
+        flex-direction: column;
+        width: 300px; /* Adjust the width as needed */
+    }
+    .form-container label,
+    .form-container input,
+    .form-container button {
+        margin-bottom: 10px; /* Space between form elements */
+    }
+</style>
+
+

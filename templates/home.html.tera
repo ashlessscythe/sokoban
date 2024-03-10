@@ -2,26 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>API Home</title>
+    <title>Home</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <h1>API Interaction Page</h1>
-    <form action="/api/endpoint" method="post">
-        <input type="text" name="input1" placeholder="Enter something..." required>
-        <button type="submit">Send POST Request</button>
-    </form>
+    <form>
+      <!-- send post request to /punch -->
+      <h2 class="form-container">Scan your badge</h2>
+      <label for="name">Scan</label>
+      <input type="password" placeholer="scan" required autofocus>
+     <button type="submit">Send POST Request</button>
 
-        <!-- list of users -->
-        <ul>
-            {% for user in users %}
-            <li>{{ user.name }}</li>
-            {% endfor %}
-        </ul>
+    </form>
     <!-- More forms or buttons to interact with other API endpoints -->
 
     <script>
-        // You can write some JavaScript here to handle button clicks or AJAX requests
+        // Handle sending POST request
+        const form = document.querySelector('form');
+        form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const response = await fetch('/punch', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        console.log(data);
+      });
     </script>
 </body>
 </html>
+
+<style>
+    .form-container {
+        display: flex;
+        flex-direction: column;
+        width: 300px; /* Adjust the width as needed */
+    }
+    .form-container label,
+    .form-container input,
+    .form-container button {
+        margin-bottom: 10px; /* Space between form elements */
+    }
+</style>
 
