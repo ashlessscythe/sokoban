@@ -1,14 +1,14 @@
 -- initial_setup.sql
 -- here be dragons
--- drop table if exists punches, users, departments cascade;
+drop table if exists punches, users, departments cascade;
 -- here end dragons
 
 -- Extensions
--- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Enums
 -- Uncomment if you have not created the punch enum yet.
--- CREATE TYPE punch AS ENUM('in', 'out');
+CREATE TYPE punch AS ENUM('in', 'out');
 
 -- Departments Table
 CREATE TABLE IF NOT EXISTS departments (
@@ -38,13 +38,13 @@ CREATE TABLE IF NOT EXISTS punches (
 -- anytime.sql
 
 -- Insert default department (check if exists before inserting)
--- INSERT INTO departments (name)
--- SELECT 'Default'
--- WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Default');
+INSERT INTO departments (name)
+SELECT 'Default'
+WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Default');
 
 -- Views
 -- If you want to recreate the view, you can DROP it first if it exists.
--- DROP VIEW IF EXISTS punches_with_user;
+DROP VIEW IF EXISTS punches_with_user;
 CREATE VIEW punches_with_user AS
 SELECT
     p.id as punch_id,
