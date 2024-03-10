@@ -155,9 +155,9 @@ fn register() -> Result<Template, BadRequest<String>> {
 // routes
 #[shuttle_runtime::main]
 async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::ShuttleRocket {
-    // if let Err(e) = initialize_db(&pool).await {
-    //     eprintln!("Database initialization failed: {:?}", e);
-    // }
+    if let Err(e) = initialize_db(&pool).await {
+        eprintln!("Database initialization failed: {:?}", e);
+    }
 
     let state = MyState { pool };
     let rocket = rocket::build()

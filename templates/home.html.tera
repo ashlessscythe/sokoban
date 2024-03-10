@@ -13,7 +13,14 @@
         <button type="submit">Scan</button>
     </form>
     <div id="statusMessage"></div> <!-- Placeholder for the message -->
-    <a href="/userlist">User List</a>
+    <ul>
+    <li>
+        <a href="/userlist">User List</a>
+    </li>
+      <li>
+        <a href="/register">Register</a>
+      </li>
+    </ul>
 
     <script>
         // JavaScript goes here

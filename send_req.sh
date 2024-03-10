@@ -2,7 +2,7 @@
 
 # define url
 # URL="http://localhost:8000"
-URL="https://sokoban.shuttleapp.rs"
+URL="https://localhost:8000"
 
 # if no args provided print usage
 if [ $# -eq 0 ]; then
