@@ -6,30 +6,107 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <form>
-      <!-- send post request to /punch -->
-      <h2 class="form-container">Scan your badge</h2>
-      <label for="name">Scan</label>
-      <input type="password" placeholer="scan" required autofocus>
-     <button type="submit">Send POST Request</button>
-
+    <form id="punchForm" class="form-container">
+        <h2>Scan your badge</h2>
+        <label for="scan">Scan</label>
+        <input type="password" id="userIdInput" name="user_id" placeholder="Enter User ID" required autofocus>
+        <button type="submit">Scan</button>
     </form>
-    <!-- More forms or buttons to interact with other API endpoints -->
+    <div id="statusMessage"></div> <!-- Placeholder for the message -->
+    <a href="/userlist">User List</a>
 
     <script>
-        // Handle sending POST request
-        const form = document.querySelector('form');
-        form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const formData = new FormData(form);
-        const response = await fetch('/punch', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        console.log(data);
+        // JavaScript goes here
+        document.getElementById('punchForm').addEventListener('submit', async function(event) {
+          event.preventDefault(); // Prevent the form from submitting in the traditional way
+
+          const userId = document.getElementById('userIdInput').value; // Get the user ID from the input
+          const messageDiv = document.getElementById('statusMessage'); // Get the div where the message will be displayed
+
+          if (!userId) {
+              messageDiv.textContent = 'Please scan a User ID.';
+              return;
+          }
+
+          try {
+              // First fetch: get user name
+              const userResponse = await fetch(`/user/${encodeURIComponent(userId)}`);
+              if (!userResponse.ok) {
+                  messageDiv.textContent = "Error fetching user details: " + userResponse.statusText;
+                  return;
+              }
+              const userData = await userResponse.json();
+              const userName = userData.name; // Adjust this according to your actual response structure
+
+              // Second fetch: get punch status
+              const punchResponse = await fetch(`/punch/${encodeURIComponent(userId)}/last_punch`);
+              if (!punchResponse.ok) {
+                  messageDiv.textContent = "Error fetching punch details: " + punchResponse.statusText;
+                  return;
+              }
+              const punchData = await punchResponse.json();
+              const userStatus = punchData.in_out; // Adjust this according to your actual response structure
+
+              // Update the page with the combined message
+              // Clear the form
+              document.getElementById('punchForm').style.display = 'none';
+              // Show status message
+              messageDiv.innerHTML = `
+                  <h2>
+                    Hello, ${userName}.<br>
+                    Your current status is ${userStatus}.<br>
+                    Select IN or OUT below.
+                  </h2>
+                  <button class="big-button" onclick="updateStatus('In')">IN</button>
+                  <button class="big-button" onclick="updateStatus('Out')">OUT</button>
+              `;
+          } catch (error) {
+              // Handle network errors
+              console.error('Fetch error:', error);
+              messageDiv.textContent = "Network error: Please try again later.";
+          }
       });
+
+      async function updateStatus(status) {
+          const userId = document.getElementById('userIdInput').value; // Get the user ID from the input
+          let punchUrl = `/punch/${encodeURIComponent(userId)}`;
+          const messageDiv = document.getElementById('statusMessage'); // Assuming this is where you want to show the message
+
+          try {
+              const punchResponse = await fetch(punchUrl, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ in_out: status })
+              });
+
+              if (punchResponse.ok) {
+                  // Show confirmation message
+                  messageDiv.innerHTML = `<p>Status updated to ${status}. Reloading...</p>`;
+
+                  // Wait for a few seconds (e.g., 3 seconds) and then reload the page
+                  setTimeout(() => {
+                      window.location.reload();
+                  }, 3000); // 3000 milliseconds = 3 seconds
+              } else {
+                  // Handle non-OK response
+                  messageDiv.innerHTML = `<p>Failed to update status. Please try again.</p>`;
+              }
+          } catch (error) {
+              // Handle network errors
+              console.error('Fetch error:', error);
+              messageDiv.innerHTML = `<p>Network error: Please try again later.</p>`;
+          }
+      }
+
+
     </script>
+
+</body>
+
+    <!-- More forms or buttons to interact with other API endpoints -->
+
 </body>
 </html>
 
@@ -44,5 +121,13 @@
     .form-container button {
         margin-bottom: 10px; /* Space between form elements */
     }
+
+    .big-button {
+        padding: 20px 40px; /* Adjust size as needed */
+        font-size: 24px; /* Adjust font size as needed */
+        margin: 10px; /* Space between buttons */
+        cursor: pointer;
+    }
+
 </style>
 

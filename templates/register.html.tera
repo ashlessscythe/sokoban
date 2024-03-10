@@ -14,8 +14,8 @@
             <input type="text" name="name" placeholder="Enter something..." required>
           <label for="email">Email</label>
             <input type="email" name="email" placeholder="Email" required>
+        <button type="submit">Send POST Request</button>
       </div>
-      <button type="submit">Send POST Request</button>
     </form>
     <!-- More forms or buttons to interact with other API endpoints -->
 
