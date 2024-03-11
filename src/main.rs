@@ -1,17 +1,75 @@
 #[macro_use]
 extern crate rocket;
 use chrono::NaiveDateTime;
+use rocket::form::Form;
 use rocket::fs::FileServer;
+use rocket::http::{Cookie, CookieJar, Status};
+use rocket::outcome::Outcome;
+use rocket::request::{self, FromRequest, Request};
 use rocket::response::status::BadRequest;
 use rocket::response::Redirect;
 use rocket::serde::json::Json;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::State;
-use rocket_dyn_templates::Template;
+use rocket_dyn_templates::{context, Template};
 use shuttle_runtime::CustomError;
 use sqlx::{Executor, FromRow, PgPool};
 use std::collections::HashMap;
 use uuid::Uuid;
+
+#[derive(FromForm)]
+struct LoginForm {
+    user_token: String,
+}
+
+#[post("/", data = "<login_form>")]
+fn login(cookies: &CookieJar<'_>, login_form: Form<LoginForm>) -> Redirect {
+    // In a real-world scenario, validate the user_token against your data store
+    if is_valid_token(&login_form.user_token) {
+        cookies.add_private(Cookie::new("user_token", login_form.user_token.clone()));
+        Redirect::to(uri!("/userlist"))
+    } else {
+        Redirect::to(uri!("/login"))
+    }
+}
+
+#[get("/login_form")]
+fn login_form() -> Template {
+    Template::render("login", context! {})
+}
+
+struct Authenticated;
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Authenticated {
+    type Error = (); // Using unit type for simplicity; customize as needed.
+
+    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+        // example condition
+        if let Some(_cookie) = request.cookies().get_private("authenticated") {
+            rocket::outcome::Outcome::Success(Authenticated)
+        } else {
+            rocket::outcome::Outcome::Error((Status::Unauthorized, ()))
+        }
+    }
+}
+
+// Placeholder for token validation logic
+fn is_valid_token(token: &str) -> bool {
+    token == "expected_token"
+}
+
+#[get("/userlist")]
+async fn userlist(_auth: Authenticated, state: &State<MyState>) -> Result<Template, Status> {
+    match user_list(state).await {
+        Ok(users) => {
+            let mut context = HashMap::new();
+            context.insert("users", users.into_inner());
+            Ok(Template::render("userlist", &context))
+        }
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
 
 // list of all users
 #[get("/users")]
@@ -139,19 +197,6 @@ fn home() -> Result<Template, BadRequest<String>> {
     Ok(Template::render("home", &context))
 }
 
-// user list route
-#[get("/userlist")]
-async fn userlist(state: &State<MyState>) -> Result<Template, BadRequest<String>> {
-    match user_list(state).await {
-        Ok(users) => {
-            let mut context = HashMap::new();
-            context.insert("users", users.into_inner());
-            Ok(Template::render("userlist", &context))
-        }
-        Err(e) => Err(e),
-    }
-}
-
 // register route
 #[get("/register")]
 fn register() -> Result<Template, BadRequest<String>> {
@@ -172,8 +217,9 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
         .mount("/user", routes![retrieve, add])
         .mount("/list", routes![user_list, punches_list])
         .mount("/punch", routes![punch, last_punch, get_user_punches])
+        .mount("/login", routes![login])
         .mount("/static", FileServer::from("static"))
-        .mount("/", routes![index, home, userlist, register])
+        .mount("/", routes![index, home, login_form, userlist, register])
         .attach(Template::fairing())
         .manage(state);
 
@@ -202,6 +248,11 @@ async fn initialize_db(pool: &PgPool) -> Result<(), CustomError> {
     transaction.commit().await.map_err(CustomError::new)?;
 
     Ok(())
+}
+
+#[derive(serde::Serialize)]
+struct ErrorResponse {
+    error: String,
 }
 
 #[derive(sqlx::Type, Serialize, Deserialize)]

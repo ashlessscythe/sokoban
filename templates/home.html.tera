@@ -15,7 +15,7 @@
     <div id="statusMessage"></div> <!-- Placeholder for the message -->
     <ul>
     <li>
-        <a href="/userlist">User List</a>
+        <a href="/login_form">User List</a>
     </li>
       <li>
         <a href="/register">Register</a>
@@ -24,49 +24,58 @@
 
     <script>
         // JavaScript goes here
+
         document.getElementById('punchForm').addEventListener('submit', async function(event) {
-          event.preventDefault(); // Prevent the form from submitting in the traditional way
-
-          const userId = document.getElementById('userIdInput').value; // Get the user ID from the input
-          const messageDiv = document.getElementById('statusMessage'); // Get the div where the message will be displayed
-
-          if (!userId) {
-              messageDiv.textContent = 'Please scan a User ID.';
-              return;
-          }
+          event.preventDefault();
+          const userInput = document.getElementById('userIdInput')
+          const userId = userInput.value;
+          const messageDiv = document.getElementById('statusMessage'); // Ensure you have this element in your HTML
 
           try {
               // First fetch: get user name
               const userResponse = await fetch(`/user/${encodeURIComponent(userId)}`);
-              if (!userResponse.ok) {
-                  messageDiv.textContent = "Error fetching user details: " + userResponse.statusText;
+              
+              // Handle 400 Bad Request response
+              if (userResponse.status === 400) {
+                  messageDiv.textContent = "User not found.";
+                  userInput.value = '';
                   return;
               }
+              
+              // Handle other non-ok responses
+              if (!userResponse.ok) {
+                  messageDiv.textContent = `Error fetching user details: ${userResponse.statusText}`;
+                  userInput.value = '';
+                  return;
+              }
+
               const userData = await userResponse.json();
-              const userName = userData.name; // Adjust this according to your actual response structure
+              const userName = userData.name; // Make sure the JSON structure includes 'name'
 
               // Second fetch: get punch status
               const punchResponse = await fetch(`/punch/${encodeURIComponent(userId)}/last_punch`);
+              
               if (!punchResponse.ok) {
                   messageDiv.textContent = "Error fetching punch details: " + punchResponse.statusText;
                   return;
               }
+
               const punchData = await punchResponse.json();
-              const userStatus = punchData.in_out; // Adjust this according to your actual response structure
+              const userStatus = punchData.in_out; // Make sure the JSON structure includes 'in_out'
 
               // Update the page with the combined message
-              // Clear the form
-              document.getElementById('punchForm').style.display = 'none';
-              // Show status message
               messageDiv.innerHTML = `
                   <h2>
-                    Hello, ${userName}.<br>
-                    Your current status is ${userStatus}.<br>
-                    Select IN or OUT below.
+                      Hello, ${userName}.<br>
+                      Your current status is ${userStatus || 'No status'}.<br>
+                      Select IN or OUT below.
                   </h2>
                   <button class="big-button" onclick="updateStatus('In')">IN</button>
                   <button class="big-button" onclick="updateStatus('Out')">OUT</button>
               `;
+              // Hide the form
+              document.getElementById('punchForm').style.display = 'none';
+
           } catch (error) {
               // Handle network errors
               console.error('Fetch error:', error);

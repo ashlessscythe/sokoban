@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Login</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <form id="loginForm" class="form-container" action="/login" method="post">
+        <h2>Login to view list</h2>
+        <input type="password" name="scan_id" id="user_token" placeholder="Enter Access Token">
+        <button class="big-login-button" type="submit">Login</button>
+        <a href="/home" class="big-button">Home</a>
+    </form>
+    <div id="statusMessage"></div> <!-- Placeholder for the message -->
+</body>
+</html>
+
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const inputField = document.getElementById('user_token')
+    const userToken = inputField.value;
+
+    const response = await fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `user_token=${encodeURIComponent(userToken)}`
+    });
+
+    if (response.redirected) {
+        window.location.href = response.url;
+    } else {
+        alert('Invalid token. Please try again.');
+        inputField.value = '';
+    }
+});
+
+</script>
+
+<style>
+    .form-container {
+        display: flex;
+        flex-direction: column;
+        width: 300px; /* Adjust the width as needed */
+    }
+    .form-container label,
+    .form-container input,
+    .form-container button {
+        margin-bottom: 10px; /* Space between form elements */
+    }
+
+    .big-login-button {
+        padding: 20px 40px; /* Adjust size as needed */
+        color: magenta;
+        font-size: 24px; /* Adjust font size as needed */
+        margin: 10px; /* Space between buttons */
+        cursor: pointer;
+    }
+
+    .big-button {
+        padding: 20px 40px; /* Adjust size as needed */
+        font-size: 24px; /* Adjust font size as needed */
+        margin: 10px; /* Space between buttons */
+        cursor: pointer;
+    }
+
+</style>
+
