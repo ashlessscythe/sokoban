@@ -12,8 +12,10 @@ use rocket::serde::json::Json;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::State;
 use rocket_dyn_templates::{context, Template};
+use rocket::response::status::Custom;
 use shuttle_runtime::CustomError;
-use sqlx::{Executor, FromRow, PgPool};
+use sqlx::{Executor, FromRow, PgPool, Postgres};
+use sqlx::Row;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -22,54 +24,103 @@ struct LoginForm {
     user_token: String,
 }
 
-#[post("/", data = "<login_form>")]
-fn login(cookies: &CookieJar<'_>, login_form: Form<LoginForm>) -> Redirect {
+#[post("/login", data = "<login_form>")]
+async fn login(cookies: &CookieJar<'_>, login_form: Form<LoginForm>, state: &State<MyState>) -> Redirect {
     // In a real-world scenario, validate the user_token against your data store
-    if is_valid_token(&login_form.user_token) {
+    println!("login form {:?}", login_form.user_token);
+    if is_valid_token(&login_form.user_token, state).await {
+        println!("cloning cookie {}", &login_form.user_token);
         cookies.add_private(Cookie::new("user_token", login_form.user_token.clone()));
         Redirect::to(uri!("/userlist"))
     } else {
-        Redirect::to(uri!("/login"))
+        Redirect::to(uri!("/home"))
     }
 }
 
 #[get("/login_form")]
-fn login_form() -> Template {
-    Template::render("login", context! {})
+async fn login_form() -> Template {
+    Template::render("loginform", context! {})
 }
 
 struct Authenticated;
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Authenticated {
-    type Error = (); // Using unit type for simplicity; customize as needed.
+    type Error = ();
 
-    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
-        // example condition
-        if let Some(_cookie) = request.cookies().get_private("authenticated") {
-            rocket::outcome::Outcome::Success(Authenticated)
+
+    async fn from_request(req: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
+        let db_pool = match req.rocket().state::<MyState>() {
+            Some(state) => state,
+            None => return rocket::request::Outcome::Error((Status::InternalServerError, ())),
+        };
+        
+        let cookies = req.cookies();
+
+        if let Some(cookie) = cookies.get_private("user_token") {
+            if is_valid_token(cookie.value(), db_pool.into()).await {
+                rocket::request::Outcome::Success(Authenticated)
+            } else {
+                rocket::request::Outcome::Error((Status::Unauthorized, ()))
+            }
         } else {
-            rocket::outcome::Outcome::Error((Status::Unauthorized, ()))
+            rocket::request::Outcome::Error((Status::Unauthorized, ()))
         }
     }
 }
 
-// Placeholder for token validation logic
-fn is_valid_token(token: &str) -> bool {
-    token == "expected_token"
+
+async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
+    let result = sqlx::query("SELECT EXISTS (SELECT 1 FROM users WHERE user_id = $1)")
+        .bind(token)
+        .fetch_one(&state.pool)
+        .await;
+
+    match result {
+        Ok(record) => record.try_get::<bool, _>(0).unwrap_or(false),
+        Err(_) => false,
+    }
+}
+
+#[get("/error")]
+fn error_page() -> Template {
+    let mut context = HashMap::new();
+    context.insert("message", "The page you're looking for doesn't exist.");
+    Template::render("error", &context)
+}
+
+// Example of a custom error catcher
+#[catch(404)]
+fn not_found() -> Custom<Template> {
+    let mut context = HashMap::new();
+    context.insert("message", "Resource was not found.");
+    Custom(Status::NotFound, Template::render("error", &context))
 }
 
 #[get("/userlist")]
-async fn userlist(_auth: Authenticated, state: &State<MyState>) -> Result<Template, Status> {
-    match user_list(state).await {
-        Ok(users) => {
-            let mut context = HashMap::new();
-            context.insert("users", users.into_inner());
-            Ok(Template::render("userlist", &context))
-        }
-        Err(_) => Err(Status::InternalServerError),
+async fn userlist(_auth: Option<Authenticated>, state: &State<MyState>) -> Template {
+    match _auth {
+        Some(_) => { // User is authenticated
+            match user_list(state).await {
+                Ok(users) => {
+                    let mut context = HashMap::new();
+                    context.insert("users", users.into_inner());
+                    Template::render("userlist", &context)
+                }
+                Err(e) => {
+                    eprintln!("Failed to get user list: {:?}", e);
+                    Template::render("error", &()) // Render an error page in case of error
+                },
+            }
+        },
+        None => {
+                let mut ctx = HashMap::new();
+                ctx.insert("message", "You are not authenticated.");
+                Template::render("loginform", &()) // User is not authenticated, redirect to login form
+        },
     }
 }
+
 
 // list of all users
 #[get("/users")]
@@ -214,13 +265,13 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
 
     let state = MyState { pool };
     let rocket = rocket::build()
+        .attach(Template::fairing())
         .mount("/user", routes![retrieve, add])
         .mount("/list", routes![user_list, punches_list])
         .mount("/punch", routes![punch, last_punch, get_user_punches])
-        .mount("/login", routes![login])
         .mount("/static", FileServer::from("static"))
-        .mount("/", routes![index, home, login_form, userlist, register])
-        .attach(Template::fairing())
+        .mount("/", routes![index, home, login, login_form, userlist, register, error_page])
+        .register("/", catchers![not_found])
         .manage(state);
 
     Ok(rocket.into())

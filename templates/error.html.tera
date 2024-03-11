@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Error Page</title>
+    <!-- Link to your CSS files here -->
+    <link rel="stylesheet" href="/path/to/your/style.css">
+</head>
+<body>
+    <div class="error-container">
+        <h1>Oops!</h1>
+        <p>{{ message }}</p>
+        <a href="/" class="button">Go Back Home</a>
+    </div>
+</body>
+</html>
