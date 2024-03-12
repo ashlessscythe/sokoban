@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate rocket;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use rocket::form::Form;
 use rocket::fs::FileServer;
 use rocket::http::{Cookie, CookieJar, Status};
@@ -132,6 +132,13 @@ fn not_found() -> Custom<Template> {
     Custom(Status::NotFound, Template::render("error", &context))
 }
 
+#[catch(500)]
+fn internal_error() -> Custom<Template> {
+    let mut context = HashMap::new();
+    context.insert("message", "Internal Server Error");
+    Custom(Status::NotFound, Template::render("error", &context))
+}
+
 #[get("/")]
 async fn id_list(
     _auth: Option<Authenticated>,
@@ -191,6 +198,42 @@ async fn userlist(
     }
 }
 
+#[get("/status")]
+async fn status(state: &State<MyState>) -> Result<Template, Status> {
+    let user_statuses = sqlx::query_as::<_, UserStatus>(
+        r#"
+        SELECT users.name, punches.in_out, MAX(punches.punch_time) as last_punch_time
+        FROM punches
+        JOIN users ON punches.user_id = users.user_id
+        GROUP BY users.name, punches.in_out
+        ORDER BY last_punch_time DESC
+    "#,
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|_| Status::InternalServerError)?;
+
+    let formatted_user_statuses: Vec<_> = user_statuses
+        .into_iter()
+        .map(|status| {
+            // Assume the NaiveDateTime is in UTC, then convert to local time and format
+            let utc_datetime: DateTime<Utc> =
+                DateTime::from_naive_utc_and_offset(status.last_punch_time, Utc);
+            let local_datetime = utc_datetime.with_timezone(&Local);
+            let formatted_time = local_datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+
+            // Return the status with the formatted time
+            UserStatusDisplay {
+                name: status.name,
+                in_out: status.in_out,
+                last_punch_time: formatted_time, // This will now be a String
+            }
+        })
+        .collect();
+
+    let context = context! { user_statuses: formatted_user_statuses };
+    Ok(Template::render("user_statuses", context))
+}
 // list of all users
 #[get("/users")]
 async fn user_list(state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<String>> {
@@ -229,7 +272,10 @@ async fn retrieve(id: String, state: &State<MyState>) -> Result<Json<User>, BadR
 #[post("/", data = "<data>")]
 async fn add(data: Json<User>, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
     // generate if user_id not provided
-    let user_id = Uuid::new_v4().to_string();
+    let user_id = match &data.user_id {
+        Some(id) => id.to_string(),
+        None => Uuid::new_v4().to_string(),
+    };
     let user =
         sqlx::query_as("INSERT INTO users (name, email, user_id) VALUES ($1, $2, $3) RETURNING *")
             .bind(&data.name)
@@ -332,7 +378,7 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let state = MyState { pool };
     let rocket = rocket::build()
         .attach(Template::fairing())
-        .mount("/user", routes![retrieve, add])
+        .mount("/user", routes![retrieve, add, status])
         .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
@@ -341,7 +387,7 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
             "/",
             routes![index, home, login, login_form, userlist, register, error_page],
         )
-        .register("/", catchers![not_found])
+        .register("/", catchers![not_found, internal_error])
         .manage(state);
 
     Ok(rocket.into())
@@ -376,7 +422,7 @@ struct ErrorResponse {
     error: String,
 }
 
-#[derive(sqlx::Type, Serialize, Deserialize)]
+#[derive(sqlx::Type, Serialize, Deserialize, Debug)]
 #[sqlx(type_name = "punch", rename_all = "lowercase")]
 enum InOut {
     In,
@@ -408,4 +454,17 @@ struct User {
 struct UserId {
     user_id: String,
     name: Option<String>,
+}
+
+#[derive(sqlx::FromRow, Serialize, Debug)]
+struct UserStatus {
+    name: String,
+    in_out: InOut,
+    last_punch_time: NaiveDateTime,
+}
+#[derive(sqlx::FromRow, Serialize)]
+struct UserStatusDisplay {
+    name: String,
+    in_out: InOut,
+    last_punch_time: String, // Now it's a String to hold the formatted date
 }
