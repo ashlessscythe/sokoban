@@ -14,7 +14,8 @@
             <input type="text" name="name" placeholder="Name" required>
           <label for="email">Email</label>
             <input type="email" name="email" placeholder="Email" required>
-        <button type="submit">Send POST Request</button>
+        <button type="submit" id="register-button">Register</button>
+        <div id="statusMessage"/>
       </div>
     </form>
     <a href="/home">Home</a>
@@ -39,14 +40,15 @@
             if (response.ok) {
                 // Assuming the server responds with the created user
                 const newUser = await response.json();
-
-                // Append the new user to the list
-                const userList = document.querySelector('ul');
-                const li = document.createElement('li');
-                li.textContent = newUser.name; // Adjust depending on your response structure
-                userList.appendChild(li);
-
-                // Optionally, clear the form fields
+                // display message to the user
+                const statusMessage = document.getElementById('statusMessage');
+                statusMessage.textContent = `User ${newUser.name} created. Redirecting to home...`;
+                // lock fields and button
+                form.elements['name', 'email'].disabled = true;
+                // redirect home after 3 seconds
+                setTimeout(() => {
+                    window.location.href = '/home';
+                }, 3000);
                 form.reset();
             } else {
                 console.error('Failed to create user:', response.statusText);

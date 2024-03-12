@@ -35,12 +35,28 @@
         body: `user_token=${encodeURIComponent(userToken)}`,
       });
 
-      if (response.redirected) {
-        console.log("Redirecting to", response.url);
-        window.location.href = response.url;
+      const statusMessage = document.getElementById("statusMessage");
+
+      // Handle the response
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.redirect) {
+          // Login successful
+          statusMessage.textContent = data.message;
+          setTimeout(() => {
+            window.location.href = data.redirect;
+          }, 2000); // Redirect after 2 seconds
+        } else {
+          // Login failed
+          statusMessage.textContent = data.message;
+          setTimeout(() => {
+            statusMessage.textContent = "";
+            inputField.value = "";
+          }, 2000); // Display error message for 2 seconds
+        }
       } else {
-        alert("Invalid token. Please try again.");
-        inputField.value = "";
+        statusMessage.textContent = "An error occurred. Please try again.";
       }
     });
 </script>
