@@ -4,8 +4,7 @@ use chrono::NaiveDateTime;
 use rocket::form::Form;
 use rocket::fs::FileServer;
 use rocket::http::{Cookie, CookieJar, Status};
-use rocket::outcome::Outcome;
-use rocket::request::{self, FromRequest, Request};
+use rocket::request::{FromRequest, Request};
 use rocket::response::status::BadRequest;
 use rocket::response::status::Custom;
 use rocket::response::Redirect;
@@ -15,7 +14,7 @@ use rocket::State;
 use rocket_dyn_templates::{context, Template};
 use shuttle_runtime::CustomError;
 use sqlx::Row;
-use sqlx::{Executor, FromRow, PgPool, Postgres};
+use sqlx::{Executor, FromRow, PgPool};
 use std::collections::HashMap;
 use uuid::Uuid;
 
