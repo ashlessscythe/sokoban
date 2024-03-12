@@ -43,6 +43,7 @@
                 // display message to the user
                 const statusMessage = document.getElementById('statusMessage');
                 statusMessage.textContent = `User ${newUser.name} created. Redirecting to home...`;
+                console.log(`User ${newUser.user_id} created.`)
                 // lock fields and button
                 form.elements['name', 'email'].disabled = true;
                 // redirect home after 3 seconds

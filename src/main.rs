@@ -87,6 +87,13 @@ impl<'r> FromRequest<'r> for Authenticated {
 }
 
 async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
+    // Check if the token matches the static value first
+    if token == "mysupersecrettoken" {
+        println!("Token matched the static secret token.");
+        return true;
+    }
+
+    // Proceed with the database check if it's not the static token
     let result = sqlx::query("SELECT EXISTS (SELECT 1 FROM users WHERE user_id = $1)")
         .bind(token)
         .fetch_one(&state.pool)
@@ -94,11 +101,17 @@ async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
 
     match result {
         Ok(record) => {
-            println!("found record");
-            record.try_get::<bool, _>(0).unwrap_or(false)
+            // Depending on the SQLx version and database used, the way to extract the EXISTS result might vary.
+            // Assuming `record` here is a Row and you're querying a PostgreSQL database.
+            // The correct column index or name should be used based on your actual query's return.
+            let exists: bool = record.try_get(0).unwrap_or(false); // Use column index if column name is not available
+            if exists {
+                println!("A record with the token was found in the database.");
+            }
+            exists
         }
         Err(_) => {
-            println!("error");
+            println!("Error querying the database.");
             false
         }
     }
@@ -117,6 +130,27 @@ fn not_found() -> Custom<Template> {
     let mut context = HashMap::new();
     context.insert("message", "Resource was not found.");
     Custom(Status::NotFound, Template::render("error", &context))
+}
+
+#[get("/")]
+async fn id_list(
+    _auth: Option<Authenticated>,
+    state: &State<MyState>,
+) -> Result<Json<Vec<UserId>>, BadRequest<String>> {
+    match _auth {
+        Some(_) => {
+            // User is authenticated
+            let list = sqlx::query_as("SELECT user_id, name FROM users")
+                .fetch_all(&state.pool)
+                .await
+                .map_err(|e| BadRequest(e.to_string()))?;
+            Ok(Json(list))
+        }
+        None => {
+            // User is not authenticated, provide a message and render the login form.
+            Err(BadRequest("You are not authenticated.".to_string()))
+        }
+    }
 }
 
 #[get("/userlist")]
@@ -195,10 +229,7 @@ async fn retrieve(id: String, state: &State<MyState>) -> Result<Json<User>, BadR
 #[post("/", data = "<data>")]
 async fn add(data: Json<User>, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
     // generate if user_id not provided
-    let user_id = data
-        .user_id
-        .clone()
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    let user_id = Uuid::new_v4().to_string();
     let user =
         sqlx::query_as("INSERT INTO users (name, email, user_id) VALUES ($1, $2, $3) RETURNING *")
             .bind(&data.name)
@@ -302,9 +333,10 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let rocket = rocket::build()
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add])
-        .mount("/list", routes![user_list, punches_list])
+        .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
+        .mount("/id", routes![id_list])
         .mount(
             "/",
             routes![index, home, login, login_form, userlist, register, error_page],
@@ -370,4 +402,10 @@ struct User {
     name: String,
     email: String,
     user_id: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, FromRow)]
+struct UserId {
+    user_id: String,
+    name: Option<String>,
 }

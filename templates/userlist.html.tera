@@ -28,8 +28,8 @@
     flex-direction: column;
     width: 300px; /* Adjust the width as needed */
   }
+.form-container input,
   .form-container label,
-  .form-container input,
   .form-container button {
     margin-bottom: 10px; /* Space between form elements */
   }
