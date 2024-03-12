@@ -1,0 +1,114 @@
+#app-container {
+  animation: fadeInAnimation ease 1s;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  background: linear-gradient(135deg, #a7c7e7 0%, #85d8ce 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* justify-content: center; */
+}
+
+/* Fade-in animation */
+@keyframes fadeInAnimation {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Different base colors for buttons */
+.big-button {
+  background-color: #56ab2f; /* Green */
+  color: white;
+}
+
+.list-button {
+  background-color: #4cb8c4; /* Blue */
+  color: white;
+}
+
+/* size */
+.big-button,
+.list-button {
+  padding: 20px 40px;
+  font-size: 1.5rem;
+  border: none;
+  border-radius: 8px;
+  margin: 15px;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+/* Hover effect for buttons - adding a transform for visual feedback */
+.big-button:hover,
+.list-button:hover {
+  transform: scale(1.05); /* Slightly scale up the buttons on hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow for depth */
+}
+
+/* Hover effect for buttons */
+.big-button:hover,
+.list-button:hover {
+  background-color: #333; /* Dark background on hover */
+  color: #fff;
+}
+
+.user-list-table {
+  max-width: 80%;
+  min-width: 40%;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Styles for the container */
+.user-details-container {
+  background-color: #ffffff; /* or any other color that fits your design */
+  padding: 20px;
+  max-width: 60%;
+  min-width: 40%;
+  margin: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* similar to the button hover effect */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem; /* creates space between elements */
+}
+
+/* responsive for mobile */
+@media (max-width: 768px) {
+  .user-details-container {
+    max-width: 90%;
+    min-width: 50%;
+  }
+}
+
+.user-details-container {
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.user-details-container .button:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+/* Styles for the input fields */
+.user-input {
+  width: 100%; /* Full width of the container */
+  padding: 10px;
+  margin: 5px 0; /* Some space above and below each input */
+  border-radius: 5px; /* Rounded corners like the buttons */
+  border: 1px solid #ccc; /* Light border similar to buttons */
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Additional button styles are already defined above and will apply here */

@@ -7,21 +7,27 @@
     <script src="/static/js/helpers.js"></script>
 </head>
 <body>
-    <form id="punchForm" class="form-container">
-        <h2>Scan your badge</h2>
-        <label for="scan">Scan</label>
-        <input type="password" id="userIdInput" name="user_id" placeholder="Enter User ID" required autofocus>
-        <button type="submit">Scan</button>
-    </form>
-    <div id="statusMessage"></div> <!-- Placeholder for the message -->
-    <ul>
-    <li>
-        <a href="/user/status">List</a>
-    </li>
-      <li>
-        <a href="/register">Register</a>
-      </li>
-    </ul>
+<div id="app-container">
+    <div class="user-details-container">
+        <form id="punchForm" class="form-container">
+            <h2>Scan your badge</h2>
+            <label for="scan">Scan</label>
+            <input class="user-input" type="password" id="userIdInput" name="user_id" placeholder="Enter User ID" required autofocus>
+            <button class="big-button" type="submit">Scan</button>
+        </form>
+        <div id="statusMessage"></div> <!-- Placeholder for the message -->
+        <div class="button-container">
+            <ul class="horizontal-buttons">
+                <li>
+                    <button class="block-button" onclick="location.href='/user/status'">List</button>
+                </li>
+                <li>
+                    <button class="block-button" onclick="location.href='/register'">Register</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
 
     <script>
         document.getElementById('punchForm').addEventListener('submit', async function(event) {
@@ -69,8 +75,8 @@
                       Your current status is ${userStatus || 'No status'}.<br>
                       Select IN or OUT below.
                   </h2>
-                  <button class="big-button" onclick="updateStatus('In')">IN</button>
-                  <button class="big-button" onclick="updateStatus('Out')">OUT</button>
+                  <button class="block-button" onclick="updateStatus('In')">IN</button>
+                  <button class="block-button" onclick="updateStatus('Out')">OUT</button>
               `;
               // Hide the form
               document.getElementById('punchForm').style.display = 'none';
@@ -138,11 +144,32 @@
         margin-bottom: 10px; /* Space between form elements */
     }
 
-    .big-button {
-        padding: 20px 40px; /* Adjust size as needed */
-        font-size: 24px; /* Adjust font size as needed */
-        margin: 10px; /* Space between buttons */
-        cursor: pointer;
+    .button-container {
+        display: flex;
+        text-align: center;
+    }
+
+    .horizontal-buttons {
+        list-style: none; /* Removes bullet points */
+        padding: 0; /* Removes default padding */
+    }
+
+    .horizontal-buttons li {
+        display: inline-block; /* Align items horizontally */
+        margin-right: 10px; /* Optional: adds some space between the buttons */
+    }
+
+    .block-button {
+        /* Add your button styling here */
+        padding: 10px 20px; /* Example padding */
+        background-color: #A7C7E7; /* Example background color */
+        border: none; /* Example border removal */
+        cursor: pointer; /* Changes the cursor on hover */
+        transition: background-color 0.3s; /* Smooth background color transition on hover */
+    }
+
+    .block-button:hover {
+        background-color: #85D8CE; /* Example hover background color */
     }
 
 </style>
