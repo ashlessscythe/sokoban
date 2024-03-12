@@ -8,19 +8,34 @@ function extractUserId(scannedId) {
     { prefix: "600", length: 9 },
   ];
 
+  let bestMatch = { match: "", startIndex: Infinity, length: 0 };
+
   for (const pattern of patterns) {
     const startIndex = scannedId.indexOf(pattern.prefix);
-    if (startIndex !== -1) {
-      extracted_id = scannedId.substr(startIndex, pattern.length);
-      console.log("Extracted userId:", extracted_id);
-      return extracted_id;
+    if (startIndex !== -1 && startIndex < bestMatch.startIndex) {
+      const possibleMatch = scannedId.substr(startIndex, pattern.length);
+      // Check if the extracted match is closer to the start and longer than the current best match
+      if (
+        startIndex < bestMatch.startIndex ||
+        (startIndex === bestMatch.startIndex &&
+          pattern.length > bestMatch.length)
+      ) {
+        bestMatch = {
+          match: possibleMatch,
+          startIndex: startIndex,
+          length: pattern.length,
+        };
+      }
     }
   }
-  // Return the original scannedId if no pattern matches
-  console.log(
-    "Nothing was extracted from scannedId:",
-    scannedId,
-    ". Returning the original scannedId."
-  );
-  return scannedId;
+
+  if (bestMatch.match) {
+    console.log(`Extracted ID: ${bestMatch.match}`);
+    return bestMatch.match;
+  } else {
+    console.log(
+      `Nothing was extracted from scannedId: ${scannedId}. Returning the original scannedId.`
+    );
+    return scannedId;
+  }
 }
