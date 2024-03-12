@@ -198,20 +198,64 @@ async fn userlist(
     }
 }
 
-#[get("/status")]
-async fn status(state: &State<MyState>) -> Result<Template, Status> {
-    let user_statuses = sqlx::query_as::<_, UserStatus>(
+#[get("/table")]
+async fn table(state: &State<MyState>) -> Result<Template, Status> {
+    let user_statuses = sqlx::query_as::<_, UserInOutStatus>(
         r#"
-        SELECT users.name, punches.in_out, MAX(punches.punch_time) as last_punch_time
-        FROM punches
-        JOIN users ON punches.user_id = users.user_id
-        GROUP BY users.name, punches.in_out
-        ORDER BY last_punch_time DESC
+        SELECT
+            u.name,
+            MAX(CASE WHEN p.in_out = 'In' THEN p.punch_time ELSE NULL END) as last_in_time,
+            MAX(CASE WHEN p.in_out = 'Out' THEN p.punch_time ELSE NULL END) as last_out_time
+        FROM
+            users u
+        LEFT JOIN
+            punch_records p ON u.user_id = p.user_id
+        GROUP BY
+            u.name
+        ORDER BY
+            u.name
     "#,
     )
     .fetch_all(&state.pool)
     .await
     .map_err(|_| Status::InternalServerError)?;
+
+    let context = context! { user_statuses: user_statuses };
+    Ok(Template::render("table", context))
+}
+
+#[get("/status")]
+async fn status(state: &State<MyState>) -> Result<Template, Status> {
+    let user_statuses = sqlx::query_as::<_, UserStatus>(
+        r#"
+        SELECT
+            u.name,
+            p.in_out,
+            p.punch_time as last_punch_time
+        FROM
+            users u
+        INNER JOIN
+            punches p ON u.user_id = p.user_id
+        INNER JOIN
+            (
+                SELECT
+                    user_id,
+                    MAX(punch_time) as max_punch_time
+                FROM
+                    punches
+                GROUP BY
+                    user_id
+            ) as latest_punch ON p.user_id = latest_punch.user_id AND 
+              p.punch_time = latest_punch.max_punch_time
+        ORDER BY
+        u.name, p.punch_time DESC;
+    "#,
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|_| Status::InternalServerError)?;
+
+    println!("user_statuses: {:?}", user_statuses);
 
     let formatted_user_statuses: Vec<_> = user_statuses
         .into_iter()
@@ -234,6 +278,7 @@ async fn status(state: &State<MyState>) -> Result<Template, Status> {
     let context = context! { user_statuses: formatted_user_statuses };
     Ok(Template::render("user_statuses", context))
 }
+
 // list of all users
 #[get("/users")]
 async fn user_list(state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<String>> {
@@ -378,7 +423,7 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let state = MyState { pool };
     let rocket = rocket::build()
         .attach(Template::fairing())
-        .mount("/user", routes![retrieve, add, status])
+        .mount("/user", routes![retrieve, add, status, table])
         .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
@@ -467,4 +512,11 @@ struct UserStatusDisplay {
     name: String,
     in_out: InOut,
     last_punch_time: String, // Now it's a String to hold the formatted date
+}
+
+#[derive(sqlx::FromRow, Serialize)]
+struct UserInOutStatus {
+    name: String,
+    last_in_time: Option<NaiveDateTime>, // These are optional to handle 'NULL'
+    last_out_time: Option<NaiveDateTime>,
 }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>User Statuses</title>
+    <title>User Table</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -12,16 +12,16 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Status</th>
-                <th>Last Punch Time</th>
+                <th>Last In</th>
+                <th>Last Out</th>
             </tr>
         </thead>
         <tbody>
             {% for user_status in user_statuses %}
             <tr>
               <td>{{ user_status.name }}</td>
-              <td>{{ user_status.in_out }}</td>
-              <td class="iso-date">{{ user_status.last_punch_time }}</td>
+              <td>{{ user_status.last_in_time | default(value="") }}</td>
+              <td>{{ user_status.last_out_time | default(value="") }}</td>
             </tr>
             {% endfor %}
         </tbody>
