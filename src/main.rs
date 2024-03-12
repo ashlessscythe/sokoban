@@ -18,6 +18,9 @@ use sqlx::{Executor, FromRow, PgPool};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+mod func;
+use func::UserIdExtractor;
+
 #[derive(FromForm)]
 struct LoginForm {
     user_token: String,
@@ -304,13 +307,41 @@ async fn punches_list(
 // get one user
 #[get("/<id>")]
 async fn retrieve(id: String, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
+    // use extractor
+    let extractor = UserIdExtractor::new(id);
+
+    let extracted_id = extractor.extract_user_id();
+    println!("extracted_id: {}", extracted_id);
     let user = sqlx::query_as("SELECT * FROM users WHERE user_id = $1")
-        .bind(id)
+        .bind(extracted_id)
         .fetch_one(&state.pool)
         .await
         .map_err(|e| BadRequest(e.to_string()))?;
 
     Ok(Json(user))
+}
+
+#[post("/bulk", data = "<data>")]
+async fn add_bulk(data: Json<Vec<User>>, state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<String>> {
+    let mut users = Vec::new();
+
+    for user_data in data.into_inner() {
+        // generate if user_id not provided
+        let user_id = match &user_data.user_id {
+            Some(id) => id.to_string(),
+            None => Uuid::new_v4().to_string(),
+        };
+        let user = sqlx::query_as("INSERT INTO users (name, email, user_id) VALUES ($1, $2, $3) RETURNING *")
+            .bind(&user_data.name)
+            .bind(&user_data.email)
+            .bind(user_id.to_string())
+            .fetch_one(&state.pool)
+            .await
+            .map_err(|e| BadRequest(e.to_string()))?;
+        users.push(user);
+    }
+
+    Ok(Json(users))
 }
 
 // create a new user
@@ -423,7 +454,7 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let state = MyState { pool };
     let rocket = rocket::build()
         .attach(Template::fairing())
-        .mount("/user", routes![retrieve, add, status, table])
+        .mount("/user", routes![retrieve, add, add_bulk, status, table])
         .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
@@ -444,21 +475,21 @@ async fn initialize_db(pool: &PgPool) -> Result<(), CustomError> {
 
     // Start a transaction
     let mut transaction = pool.begin().await.map_err(CustomError::new)?;
-
+    
     // Execute init.sql
     for command in init_sql.split(';') {
         let command = command.trim();
         if !command.is_empty() {
             transaction
-                .execute(command)
-                .await
-                .map_err(CustomError::new)?;
-        }
+            .execute(command)
+            .await
+            .map_err(CustomError::new)?;
+    }
     }
 
     // Commit the transaction
     transaction.commit().await.map_err(CustomError::new)?;
-
+    
     Ok(())
 }
 
