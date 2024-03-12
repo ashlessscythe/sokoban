@@ -3559,6 +3559,7 @@ version = "0.1.0"
 dependencies = [
  "cargo-watch",
  "chrono",
+ "chrono-tz",
  "rocket",
  "rocket_dyn_templates",
  "serde",

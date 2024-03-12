@@ -83,7 +83,8 @@
       });
 
       async function updateStatus(status) {
-          const userId = document.getElementById('userIdInput').value; // Get the user ID from the input
+          const inputField = document.getElementById('userIdInput');
+          const userId = extractUserId(inputField.value); // Get the user ID from the input
           let punchUrl = `/punch/${encodeURIComponent(userId)}`;
           const messageDiv = document.getElementById('statusMessage'); // Assuming this is where you want to show the message
 

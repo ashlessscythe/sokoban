@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rocket;
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
+use chrono_tz::US::Mountain;
 use rocket::form::Form;
 use rocket::fs::FileServer;
 use rocket::http::{Cookie, CookieJar, Status};
@@ -228,8 +229,8 @@ async fn status(
 }
 
 async fn current_status(state: &State<MyState>) -> Result<Template, Status> {
-    let user_statuses = sqlx::query_as::<_, UserStatus>(
-        r#"
+    let mut user_statuses = sqlx::query_as::<_, UserStatus>(
+    r#"
         SELECT
             u.name,
             p.in_out,
@@ -245,17 +246,23 @@ async fn current_status(state: &State<MyState>) -> Result<Template, Status> {
                     MAX(punch_time) as max_punch_time
                 FROM
                     punches
+                WHERE
+                    punch_time >= NOW() - INTERVAL '24 HOURS'
                 GROUP BY
                     user_id
             ) as latest_punch ON p.user_id = latest_punch.user_id AND 
-              p.punch_time = latest_punch.max_punch_time
+            p.punch_time = latest_punch.max_punch_time
         ORDER BY
-        u.name, p.punch_time DESC;
-    "#,
+            u.name, p.punch_time DESC;
+        "#
+
     )
     .fetch_all(&state.pool)
     .await
     .map_err(|_| Status::InternalServerError)?;
+
+    // sort by time
+    user_statuses.sort_by(|a, b| b.last_punch_time.cmp(&a.last_punch_time));
 
     println!("user_statuses: {:?}", user_statuses);
 
@@ -264,9 +271,9 @@ async fn current_status(state: &State<MyState>) -> Result<Template, Status> {
         .map(|status| {
             // Assume the NaiveDateTime is in UTC, then convert to local time and format
             let utc_datetime: DateTime<Utc> =
-                DateTime::from_naive_utc_and_offset(status.last_punch_time, Utc);
-            let local_datetime = utc_datetime.with_timezone(&Local);
-            let formatted_time = local_datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+                DateTime::<Utc>::from_utc(status.last_punch_time, Utc);
+            let mountain_datetime = utc_datetime.with_timezone(&Mountain);
+            let formatted_time = mountain_datetime.format("%Y-%m-%d %H:%M:%S").to_string();
 
             // Return the status with the formatted time
             UserStatusDisplay {
