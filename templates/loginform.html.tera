@@ -3,6 +3,7 @@
   <head>
     <title>Simple Login</title>
     <link rel="stylesheet" href="/static/css/style.css" />
+    <script src="/static/js/helpers.js"></script>
   </head>
   <body>
     <form id="loginForm" class="form-container" action="/login" method="post">
@@ -27,7 +28,7 @@
     .addEventListener("submit", async function (event) {
       event.preventDefault();
       const inputField = document.getElementById("user_token");
-      const userToken = inputField.value;
+      const userToken = extractUserId(inputField.value);
 
       const response = await fetch("/login", {
         method: "POST",

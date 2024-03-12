@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Home</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/helpers.js"></script>
 </head>
 <body>
     <form id="punchForm" class="form-container">
@@ -15,7 +16,7 @@
     <div id="statusMessage"></div> <!-- Placeholder for the message -->
     <ul>
     <li>
-        <a href="/userlist">User List</a>
+        <a href="/user/status">List</a>
     </li>
       <li>
         <a href="/register">Register</a>
@@ -23,12 +24,10 @@
     </ul>
 
     <script>
-        // JavaScript goes here
-
         document.getElementById('punchForm').addEventListener('submit', async function(event) {
           event.preventDefault();
           const userInput = document.getElementById('userIdInput')
-          const userId = userInput.value;
+          const userId = extractUserId(userInput.value);
           const messageDiv = document.getElementById('statusMessage'); // Ensure you have this element in your HTML
 
           try {

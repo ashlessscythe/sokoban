@@ -1,3 +1,20 @@
+use rocket::request::{self, FromRequest, Request};
+use rocket::outcome::Outcome;
+
+pub struct ExtractedUserId(String);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for ExtractedUserId {
+    type Error = std::convert::Infallible;
+
+    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+        let id = request.param::<String>(0).unwrap();
+        let extractor = UserIdExtractor::new(id.expect("No scannedId found in the request"));
+        let extracted_id = extractor.extract_user_id();
+        Outcome::Success(ExtractedUserId(extracted_id))
+    }
+}
+
 pub struct UserIdExtractor {
     scanned_id: String,
 }

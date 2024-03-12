@@ -18,9 +18,6 @@ use sqlx::{Executor, FromRow, PgPool};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-mod func;
-use func::UserIdExtractor;
-
 #[derive(FromForm)]
 struct LoginForm {
     user_token: String,
@@ -47,7 +44,8 @@ async fn login(
         Ok(Json(LoginResponse {
             success: true,
             message: "Login sucessful".to_string(),
-            redirect: Some(uri!("/userlist").to_string()),
+            // redirect to where they were going
+            redirect: Some(cookies.get("redirect").map(|c| c.value().to_string()).unwrap_or("/home".to_string())),
         }))
     } else {
         Ok(Json(LoginResponse {
@@ -201,34 +199,35 @@ async fn userlist(
     }
 }
 
-#[get("/table")]
-async fn table(state: &State<MyState>) -> Result<Template, Status> {
-    let user_statuses = sqlx::query_as::<_, UserInOutStatus>(
-        r#"
-        SELECT
-            u.name,
-            MAX(CASE WHEN p.in_out = 'In' THEN p.punch_time ELSE NULL END) as last_in_time,
-            MAX(CASE WHEN p.in_out = 'Out' THEN p.punch_time ELSE NULL END) as last_out_time
-        FROM
-            users u
-        LEFT JOIN
-            punch_records p ON u.user_id = p.user_id
-        GROUP BY
-            u.name
-        ORDER BY
-            u.name
-    "#,
-    )
-    .fetch_all(&state.pool)
-    .await
-    .map_err(|_| Status::InternalServerError)?;
-
-    let context = context! { user_statuses: user_statuses };
-    Ok(Template::render("table", context))
+// get status /status only if auth
+#[get("/status")]
+async fn status(
+    _auth: Option<Authenticated>,
+    state: &State<MyState>,
+) -> Result<Template, Status> {
+    match _auth {
+        Some(_) => {
+            // User is authenticated
+            match current_status(state).await {
+                Ok(status) => Ok(status),
+                Err(e) => {
+                    eprintln!("Failed to get user status: {:?}", e);
+                    let mut context = HashMap::new();
+                    context.insert("message", "Failed to get the user status.");
+                    Ok(Template::render("error", &context)) // Provide a context with a message.
+                }
+            }
+        }
+        None => {
+            // User is not authenticated, provide a message and render the login form.
+            let mut ctx = HashMap::new();
+            ctx.insert("message", "You are not authenticated.");
+            Ok(Template::render("loginform", &ctx)) // Ensure you return `Ok` here.
+        }
+    }
 }
 
-#[get("/status")]
-async fn status(state: &State<MyState>) -> Result<Template, Status> {
+async fn current_status(state: &State<MyState>) -> Result<Template, Status> {
     let user_statuses = sqlx::query_as::<_, UserStatus>(
         r#"
         SELECT
@@ -308,12 +307,8 @@ async fn punches_list(
 #[get("/<id>")]
 async fn retrieve(id: String, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
     // use extractor
-    let extractor = UserIdExtractor::new(id);
-
-    let extracted_id = extractor.extract_user_id();
-    println!("extracted_id: {}", extracted_id);
     let user = sqlx::query_as("SELECT * FROM users WHERE user_id = $1")
-        .bind(extracted_id)
+        .bind(id)
         .fetch_one(&state.pool)
         .await
         .map_err(|e| BadRequest(e.to_string()))?;
@@ -454,8 +449,8 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let state = MyState { pool };
     let rocket = rocket::build()
         .attach(Template::fairing())
-        .mount("/user", routes![retrieve, add, add_bulk, status, table])
-        .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
+        .mount("/user", routes![retrieve, add, add_bulk, status])
+        // .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
         .mount("/id", routes![id_list])
