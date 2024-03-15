@@ -457,7 +457,7 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let rocket = rocket::build()
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add, add_bulk, status])
-        // .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
+        .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
         .mount("/id", routes![id_list])

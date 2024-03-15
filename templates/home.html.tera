@@ -73,14 +73,14 @@
 
               // Update the page with the combined message
               messageDiv.innerHTML = `
-                  <h2>
-                      Hello, ${userName}.<br>
-                      Your current status is ${userStatus || 'No status'}.<br>
-                      Select IN or OUT below.
-                  </h2>
-                  <button class="block-button" onclick="updateStatus('In')">IN</button>
-                  <button class="block-button" onclick="updateStatus('Out')">OUT</button>
-              `;
+                <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
+                <h2>
+                    Hello, ${userName}.<br>
+                    Your current status is ${userStatus || 'No status'}.
+                </h2>
+                <button class="block-button" onclick="updateStatus('In')">IN</button>
+                <button class="block-button" onclick="updateStatus('Out')">OUT</button>
+               `;
               // Hide the form
               document.getElementById('punchForm').style.display = 'none';
 
@@ -147,6 +147,22 @@
         margin-bottom: 10px; /* Space between form elements */
     }
 
+    .img-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        overflow: hidden;
+    }
+
+    .img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain; /* Ensures aspect ratio is maintained */
+    }
+
     .button-container {
         width: 100%;
         text-align: center;
@@ -164,7 +180,6 @@
         display: inline-block; /* Align items horizontally */
         margin-right: 10px; /* Optional: adds some space between the buttons */
     }
-
 
     .logo-container {
         position: absolute;
