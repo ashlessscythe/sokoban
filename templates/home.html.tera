@@ -72,8 +72,7 @@
 
               const punchData = await punchResponse.json();
               const userStatus = punchData.in_out; // Make sure the JSON structure includes 'in_out'
-              startInactivityTimer(10000);
-
+              
               // Update the page with the combined message
               messageDiv.innerHTML = `
                 <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
