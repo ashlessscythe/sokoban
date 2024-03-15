@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>User Statuses</title>
     <link rel="stylesheet" href="/static/css/style.css" />
+    <script src="/static/js/helpers.js"></script>
   </head>
   <body>
     <h1>User Statuses</h1>
@@ -32,6 +33,10 @@
     </button>
   </body>
 </html>
+
+<script>
+  startInactivityTimer(10000);
+</script>
 
 <style>
   table {
