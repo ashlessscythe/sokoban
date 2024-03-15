@@ -12,6 +12,7 @@
         type="password"
         name="scan_id"
         id="user_token"
+        autofocus
         placeholder="Enter Access Token"
       />
       <button class="big-login-button" type="submit">Login</button>
@@ -25,6 +26,8 @@
 </html>
 
 <script>
+  setInputClearTimer("#user_token", 3000);
+  startInactivityTimer(10000);
   document
     .getElementById("loginForm")
     .addEventListener("submit", async function (event) {

@@ -33,6 +33,8 @@
 </div>
 
     <script>
+        // import fn to clear input
+        setInputClearTimer('#userIdInput', 3000);
         document.getElementById('punchForm').addEventListener('submit', async function(event) {
           event.preventDefault();
           const userInput = document.getElementById('userIdInput')
@@ -70,6 +72,7 @@
 
               const punchData = await punchResponse.json();
               const userStatus = punchData.in_out; // Make sure the JSON structure includes 'in_out'
+              startInactivityTimer(10000);
 
               // Update the page with the combined message
               messageDiv.innerHTML = `

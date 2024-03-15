@@ -39,3 +39,66 @@ function extractUserId(scannedId) {
     return scannedId;
   }
 }
+
+function startInactivityTimer(TIMEOUT_DURATION = 300000) {
+  // Default to 5 minutes
+  let timeout;
+
+  function redirectToHome() {
+    window.location.href = "/";
+  }
+
+  function resetTimeout() {
+    clearTimeout(timeout);
+    timeout = setTimeout(redirectToHome, TIMEOUT_DURATION);
+  }
+
+  document.addEventListener("mousemove", resetTimeout);
+  document.addEventListener("keypress", resetTimeout);
+  document.addEventListener("click", resetTimeout);
+
+  resetTimeout();
+}
+
+// Set a timeout to clear the input box if not entered fully within a specified time
+function setInputClearTimer(
+  inputSelector,
+  clearAfter = 5000,
+  fieldFocus = true
+) {
+  let timeout;
+
+  // Find the input box
+  const inputBox = document.querySelector(inputSelector);
+  console.log("inputbox is:" + inputBox);
+
+  if (!inputBox) return; // Exit if the input box is not found
+
+  // Function to clear the input box
+  function clearInput() {
+    inputBox.value = "";
+    // Focus on the input box
+    if (fieldFocus) {
+      setTimeout(() => inputBox.focus(), 0);
+    }
+  }
+
+  // Reset the timer whenever the user types
+  function resetTimer() {
+    clearTimeout(timeout);
+    timeout = setTimeout(clearInput, clearAfter);
+  }
+
+  // Listen for keypresses in the input box
+  inputBox.addEventListener("keyup", resetTimer);
+
+  // Listen for the blur event on the input box
+  inputBox.addEventListener("blur", () => {
+    if (fieldFocus) {
+      setTimeout(() => inputBox.focus(), clearAfter);
+    }
+  });
+
+  // Initialize the timer
+  resetTimer();
+}

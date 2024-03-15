@@ -1,76 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Register</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <script src="/static/js/helpers.js"></script>
+  </head>
+  <body>
     <h1>Register</h1>
     <form action="/user" method="post">
       <!-- place these vertically-->
       <div class="form-container">
-          <label for="name">Name</label>
-            <input type="text" name="name" placeholder="Name" required>
-          <label for="email">Email</label>
-            <input type="email" name="email" placeholder="Email" required>
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Name" required />
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="Email"
+          required
+        />
         <button type="submit" id="register-button">Register</button>
-        <div id="statusMessage"/>
+        <div id="statusMessage" />
       </div>
     </form>
     <a href="/home">Home</a>
     <!-- More forms or buttons to interact with other API endpoints -->
 
     <script>
-        // Handle sending POST request
-        const form = document.querySelector('form');
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const name = form.elements['name'].value;
-            const email = form.elements['email'].value;
+      setInputClearTimer("#name", 3000, (fieldFocus = false));
+      setInputClearTimer("#email", 3000, (fieldFocus = false));
+      startInactivityTimer(10000);
+      // Handle sending POST request
+      const form = document.querySelector("form");
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const name = form.elements["name"].value;
+        const email = form.elements["email"].value;
 
-            const response = await fetch('/user', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, email })
-            });
-
-            if (response.ok) {
-                // Assuming the server responds with the created user
-                const newUser = await response.json();
-                // display message to the user
-                const statusMessage = document.getElementById('statusMessage');
-                statusMessage.textContent = `User ${newUser.name} created. Redirecting to home...`;
-                console.log(`User ${newUser.user_id} created.`)
-                // lock fields and button
-                form.elements['name', 'email'].disabled = true;
-                // redirect home after 3 seconds
-                setTimeout(() => {
-                    window.location.href = '/home';
-                }, 3000);
-                form.reset();
-            } else {
-                console.error('Failed to create user:', response.statusText);
-                // Handle error (show message to the user, etc.)
-            }
+        const response = await fetch("/user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name, email }),
         });
+
+        if (response.ok) {
+          // Assuming the server responds with the created user
+          const newUser = await response.json();
+          // display message to the user
+          const statusMessage = document.getElementById("statusMessage");
+          statusMessage.textContent = `User ${newUser.name} created. Redirecting to home...`;
+          console.log(`User ${newUser.user_id} created.`);
+          // lock fields and button
+          form.elements[("name", "email")].disabled = true;
+          // redirect home after 3 seconds
+          setTimeout(() => {
+            window.location.href = "/home";
+          }, 3000);
+          form.reset();
+        } else {
+          console.error("Failed to create user:", response.statusText);
+          // Handle error (show message to the user, etc.)
+        }
+      });
     </script>
-</body>
+  </body>
 </html>
 
 <style>
-    .form-container {
-        display: flex;
-        flex-direction: column;
-        width: 300px; /* Adjust the width as needed */
-    }
-    .form-container label,
-    .form-container input,
-    .form-container button {
-        margin-bottom: 10px; /* Space between form elements */
-    }
+  .form-container {
+    display: flex;
+    flex-direction: column;
+    width: 300px; /* Adjust the width as needed */
+  }
+  .form-container label,
+  .form-container input,
+  .form-container button {
+    margin-bottom: 10px; /* Space between form elements */
+  }
 </style>
-
-
