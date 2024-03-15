@@ -60,14 +60,15 @@ function startInactivityTimer(TIMEOUT_DURATION = 300000) {
   resetTimeout();
 }
 
+let timeout;
+let inputBox;
+
 // Set a timeout to clear the input box if not entered fully within a specified time
 function setInputClearTimer(
   inputSelector,
   clearAfter = 5000,
   fieldFocus = true
 ) {
-  let timeout;
-
   // Find the input box
   const inputBox = document.querySelector(inputSelector);
   console.log("inputbox is:" + inputBox);
@@ -101,4 +102,20 @@ function setInputClearTimer(
 
   // Initialize the timer
   resetTimer();
+}
+
+function cancelInputClearTimer() {
+  // Clear the timeout
+  clearTimeout(timeout);
+  console.log("cancelInputClearTimer called");
+
+  // Remove the event listeners
+  if (inputBox) {
+    inputBox.removeEventListener("keyup", resetTimer);
+    inputBox.removeEventListener("blur", () => {
+      if (fieldFocus) {
+        setTimeout(() => inputBox.focus(), clearAfter);
+      }
+    });
+  }
 }
