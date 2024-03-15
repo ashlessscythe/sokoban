@@ -165,24 +165,6 @@
         margin-right: 10px; /* Optional: adds some space between the buttons */
     }
 
-    .block-button {
-        /* Add your button styling here */
-        font-size: 20px;
-        padding: 15px 30px; /* Example padding */
-        width: auto;
-        margin: 5px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        background-color: #A7C7E7; /* Example background color */
-        border: none; /* Example border removal */
-        cursor: pointer; /* Changes the cursor on hover */
-        transition: background-color 0.3s; /* Smooth background color transition on hover */
-    }
-
-    .block-button:hover {
-        background-color: #85D8CE; /* Example hover background color */
-    }
 
     .logo-container {
         position: absolute;
