@@ -1,55 +1,73 @@
 /* static/css/style.css */
 body {
-    font-family: Arial, sans-serif;
-    margin: 40px;
-    background-color: #f0f0f0;
+  font-family: Arial, sans-serif;
+  margin: 40px;
+  background-color: #f0f0f0;
 }
 
 h1 {
-    color: #333;
+  color: #333;
 }
 
 #statusMessage {
-    background-color: #f2f4f8; /* Soft background color */
-    color: #333; /* Text color */
-    border-radius: 8px; /* Rounded corners */
-    padding: 20px; /* Space inside the div */
-    margin: 20px 0; /* Margin for top and bottom */
-    text-align: center; /* Center the text */
-    font-size: 18px; /* Larger text size */
+  background-color: #f2f4f8; /* Soft background color */
+  color: #333; /* Text color */
+  border-radius: 8px; /* Rounded corners */
+  padding: 20px; /* Space inside the div */
+  margin: 20px 0; /* Margin for top and bottom */
+  text-align: center; /* Center the text */
+  font-size: 18px; /* Larger text size */
 }
 
 .form-container {
-    display: flex;
-    flex-direction: column; /* Stack items vertically */
-    align-items: center; /* Center items horizontally */
-    width: 100%; /* Take full width to center content */
-    max-width: 600px; /* Maximum width of the form */
-    margin: 0 auto; /* Center the form container */
-    padding: 20px; /* Padding around the form */
-    box-sizing: border-box; /* Include padding in width calculation */
+  display: flex;
+  flex-direction: column; /* Stack items vertically */
+  align-items: center; /* Center items horizontally */
+  width: 100%; /* Take full width to center content */
+  max-width: 600px; /* Maximum width of the form */
+  margin: 0 auto; /* Center the form container */
+  padding: 20px; /* Padding around the form */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
 .form-container input,
 .form-container button,
 .table-container {
-    width: 100%; /* Make input and button take full width of the form container */
-    padding: 15px; /* Padding inside input and button */
-    margin-bottom: 20px; /* Margin between form items */
-    box-sizing: border-box; /* Include padding in width calculation */
-    border: 1px solid #ccc; /* Border for inputs and buttons */
-    border-radius: 4px; /* Rounded corners for inputs and buttons */
+  width: 100%; /* Make input and button take full width of the form container */
+  padding: 15px; /* Padding inside input and button */
+  margin-bottom: 20px; /* Margin between form items */
+  box-sizing: border-box; /* Include padding in width calculation */
+  border: 1px solid #ccc; /* Border for inputs and buttons */
+  border-radius: 4px; /* Rounded corners for inputs and buttons */
 }
 
 .form-container button {
-    background-color: #007bff; /* Button background color */
-    color: white; /* Button text color */
-    font-size: 18px; /* Larger text size for button */
-    border: none; /* Remove border for button */
-    cursor: pointer; /* Cursor pointer for button */
+  background-color: #007bff; /* Button background color */
+  color: white; /* Button text color */
+  font-size: 18px; /* Larger text size for button */
+  border: none; /* Remove border for button */
+  cursor: pointer; /* Cursor pointer for button */
 }
 
 .form-container button:hover {
-    background-color: #0056b3; /* Darker background on hover */
+  background-color: #0056b3; /* Darker background on hover */
 }
 
+.block-button {
+  /* Add your button styling here */
+  font-size: 20px;
+  padding: 15px 30px; /* Example padding */
+  width: auto;
+  margin: 5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #a7c7e7; /* Example background color */
+  border: none; /* Example border removal */
+  cursor: pointer; /* Changes the cursor on hover */
+  transition: background-color 0.3s; /* Smooth background color transition on hover */
+}
+
+.block-button:hover {
+  background-color: #85d8ce; /* Example hover background color */
+}

@@ -8,6 +8,9 @@
 </head>
 <body>
 <div id="app-container">
+    <div class="logo-container">
+        <img src="/static/images/company_logo.jpg" alt="Company Logo">
+    </div>
     <div class="user-details-container">
         <form id="punchForm" class="form-container">
             <h2>Scan your badge</h2>
@@ -145,23 +148,32 @@
     }
 
     .button-container {
-        display: flex;
+        width: 100%;
         text-align: center;
     }
 
-    .horizontal-buttons {
-        list-style: none; /* Removes bullet points */
+    ul.horizontal-buttons {
+        list-style-type: none; /* Removes bullet points */
         padding: 0; /* Removes default padding */
+        display: flex;
+        justify-content: center; /* Aligns the buttons to the center */
+        gap: 10px; /* Optional: adds some space between the buttons */
     }
 
-    .horizontal-buttons li {
+    li.horizontal-buttons {
         display: inline-block; /* Align items horizontally */
         margin-right: 10px; /* Optional: adds some space between the buttons */
     }
 
     .block-button {
         /* Add your button styling here */
-        padding: 10px 20px; /* Example padding */
+        font-size: 20px;
+        padding: 15px 30px; /* Example padding */
+        width: auto;
+        margin: 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
         background-color: #A7C7E7; /* Example background color */
         border: none; /* Example border removal */
         cursor: pointer; /* Changes the cursor on hover */
@@ -172,5 +184,16 @@
         background-color: #85D8CE; /* Example hover background color */
     }
 
+    .logo-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 10px;
+    }
+
+    .logo-container img {
+        width: 100px; /* Adjust the width as needed */
+        height: auto;
+    }
 </style>
 

@@ -1,63 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>User Statuses</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
     <h1>User Statuses</h1>
     <div class="table-container">
-    <table>
+      <table>
         <thead>
-            <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Last Punch Time</th>
-            </tr>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Last Punch Time</th>
+          </tr>
         </thead>
         <tbody>
-            {% for user_status in user_statuses %}
-            <tr>
-              <td>{{ user_status.name }}</td>
-              <td>{{ user_status.in_out }}</td>
-              <td class="iso-date">{{ user_status.last_punch_time }}</td>
-            </tr>
-            {% endfor %}
+          {% for user_status in user_statuses %}
+          <tr>
+            <td>{{ user_status.name }}</td>
+            <td>{{ user_status.in_out }}</td>
+            <td class="iso-date">{{ user_status.last_punch_time }}</td>
+          </tr>
+          {% endfor %}
         </tbody>
-    </table>
+      </table>
     </div>
-    <a href="/home">Go to homepage</a>
-</body>
+    <button class="block-button" onclick="location.href='/home'">
+      Go to Homepage
+    </button>
+  </body>
 </html>
 
 <style>
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
 
-table, th, td {
-  border: 2px double #ddd; /* Double lines for grid */
-}
+  table,
+  th,
+  td {
+    border: 2px double #ddd; /* Double lines for grid */
+  }
 
-th, td {
-  padding: 8px;
-  text-align: left;
-}
+  th,
+  td {
+    padding: 8px;
+    text-align: left;
+  }
 
-th {
-  background-color: #f2f2f2;
-}
+  th {
+    background-color: #f2f2f2;
+  }
 
-tr:hover {
-  background-color: #e8e8e8; /* Highlight on hover */
-}
+  tr:hover {
+    background-color: #e8e8e8; /* Highlight on hover */
+  }
 
-/* This is a class to format the date, we'll add it in the <td> tag */
-.iso-date {
-  white-space: nowrap; /* Prevents wrapping */
-}
+  /* This is a class to format the date, we'll add it in the <td> tag */
+  .iso-date {
+    white-space: nowrap; /* Prevents wrapping */
+  }
 </style>
-
-

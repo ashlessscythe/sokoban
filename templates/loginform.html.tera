@@ -15,7 +15,9 @@
         placeholder="Enter Access Token"
       />
       <button class="big-login-button" type="submit">Login</button>
-      <a href="/home" class="big-button">Homepage</a>
+      <button class="block-button" onclick="location.href='/home'">
+        Go to Homepage
+      </button>
     </form>
     <div id="statusMessage">{{ message }}</div>
     <!-- Placeholder for the message -->
