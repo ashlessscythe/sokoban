@@ -83,8 +83,8 @@
                     Hello, ${userName}.<br>
                     Your current status is ${userStatus || 'No status'}.
                 </h2>
-                <button class="block-button" onclick="updateStatus('In')">IN</button>
-                <button class="block-button" onclick="updateStatus('Out')">OUT</button>
+                <button class="block-button" onclick="updateStatus('In')">CHECK IN</button>
+                <button class="block-button" onclick="updateStatus('Out')">CHECK OUT</button>
                `;
               // Hide the form
               document.getElementById('punchForm').style.display = 'none';

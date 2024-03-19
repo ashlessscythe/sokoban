@@ -1,6 +1,6 @@
 -- initial_setup.sql
 -- here be dragons
-drop table if exists punches, users, departments cascade;
+-- drop table if exists punches, users, departments cascade;
 -- here end dragons
 
 -- Extensions
