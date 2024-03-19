@@ -2,7 +2,7 @@
 
 # Update and install necessary packages
 sudo apt-get update
-sudo apt-get install -y tmux tig cargo pgcli
+sudo apt-get install -y tmux tig cargo pgcli postgresql-client postgresql-client-common libpq-dev
 
 # Clone the GitHub repository into a directory named "tmux" if it doesn't already exist
 if [ ! -d "$HOME/tmux" ]; then
