@@ -54,8 +54,8 @@
               
               // Handle other non-ok responses
               if (!userResponse.ok) {
-                  messageDiv.textContent = `Error fetching user details: ${userResponse.statusText}`;
                   userInput.value = '';
+              messageDiv.textContent = `Error fetching user details: ${userResponse.statusText}`;
                   return;
               }
 
@@ -85,6 +85,7 @@
                 </h2>
                 <button class="block-button" onclick="updateStatus('In')">CHECK IN</button>
                 <button class="block-button" onclick="updateStatus('Out')">CHECK OUT</button>
+                <button class="block-button" onclick="location.href='/home'">HomePage</button>
                `;
               // Hide the form
               document.getElementById('punchForm').style.display = 'none';
