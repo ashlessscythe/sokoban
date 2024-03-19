@@ -1,0 +1,17 @@
+TODO:
+-------------------------------
+Add dept & supervisor?
+add device id
+Verify presence page with checkmark?
+
+
+DONE:
+------------------
+idempotency
+https and tls
+Company Logo
+Picture placeholder (currently using random cat pic)
+Rename home button
+timeout to return to homepage
+select and clear input box after timeout
+only show latest entry in list
