@@ -3,6 +3,7 @@ TODO:
 Add dept & supervisor?
 add device id
 Verify presence page with checkmark?
+scroll for long list
 
 
 DONE:

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.81"
 # missing a lib target
 cargo-watch = "8.5.2"
 chrono = "0.4.35"

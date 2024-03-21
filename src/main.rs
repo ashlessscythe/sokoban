@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate rocket;
-use chrono::{DateTime, Local, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::US::Mountain;
 use rocket::form::Form;
 use rocket::fs::FileServer;
@@ -18,6 +18,9 @@ use sqlx::Row;
 use sqlx::{Executor, FromRow, PgPool};
 use std::collections::HashMap;
 use uuid::Uuid;
+use sqlx::{postgres::PgQueryResult, Error as SqlxError};
+use anyhow::Error;
+use std::string::ToString;
 
 #[derive(FromForm)]
 struct LoginForm {
@@ -333,10 +336,11 @@ async fn add_bulk(data: Json<Vec<User>>, state: &State<MyState>) -> Result<Json<
             Some(id) => id.to_string(),
             None => Uuid::new_v4().to_string(),
         };
-        let user = sqlx::query_as("INSERT INTO users (name, email, user_id) VALUES ($1, $2, $3) RETURNING *")
+        let user = sqlx::query_as("INSERT INTO users (name, email, user_id, dept_id) VALUES ($1, $2, $3, $4) RETURNING *")
             .bind(&user_data.name)
             .bind(&user_data.email)
             .bind(user_id.to_string())
+            .bind(user_data.dept_id)
             .fetch_one(&state.pool)
             .await
             .map_err(|e| BadRequest(e.to_string()))?;
@@ -449,15 +453,17 @@ fn register() -> Result<Template, BadRequest<String>> {
 // routes
 #[shuttle_runtime::main]
 async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::ShuttleRocket {
-    if let Err(e) = initialize_db(&pool).await {
-        eprintln!("Database initialization failed: {:?}", e);
-    }
+    // if let Err(e) = initialize_db(&pool).await {
+    //     eprintln!("Database initialization failed: {:?}", e);
+    // } else {
+    //     eprintln!("Database initialized using connection pool: {:?}", pool);
+    // }
 
     let state = MyState { pool };
     let rocket = rocket::build()
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add, add_bulk, status])
-        // .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
+        .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
         .mount("/id", routes![id_list])
@@ -472,27 +478,64 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
 }
 
 // Define the function to initialize your database
-async fn initialize_db(pool: &PgPool) -> Result<(), CustomError> {
+async fn initialize_db(pool: &PgPool) -> Result<(), Error> {
     let init_sql = include_str!("../init.sql");
+    let mut transaction = pool.begin().await.map_err(Error::msg)?;
 
-    // Start a transaction
-    let mut transaction = pool.begin().await.map_err(CustomError::new)?;
-    
-    // Execute init.sql
-    for command in init_sql.split(';') {
+    for command in split_sql_commands(init_sql) {
         let command = command.trim();
         if !command.is_empty() {
-            transaction
-            .execute(command)
-            .await
-            .map_err(CustomError::new)?;
-    }
+            transaction.execute(command).await.map_err(Error::msg)?;
+        }
     }
 
-    // Commit the transaction
-    transaction.commit().await.map_err(CustomError::new)?;
-    
+    transaction.commit().await.map_err(Error::msg)?;
     Ok(())
+}
+
+// split sql commands
+fn split_sql_commands(init_sql: &str) -> Vec<String> {
+    let mut commands = Vec::new();
+    let mut current_command = String::new();
+    let mut in_block = false;
+    println!("init_sql: {}", init_sql);
+
+    for line in init_sql.lines() {
+        if line.contains("DO $$") {
+            in_block = true;
+        }
+
+        if in_block {
+            // Add the line to the current command and continue until the block ends
+            current_command.push_str(line);
+            current_command.push('\n');
+            println!("current_command: {}", current_command);
+            
+            if line.contains("$$") {
+                in_block = false;
+                commands.push(current_command.clone());
+                current_command.clear();
+            }
+        } else {
+            // If not in a block, handle line by line as separate commands
+            if line.trim().ends_with(';') {
+                current_command.push_str(line);
+                println!("current_command: {}", current_command);
+                commands.push(current_command.clone());
+                current_command.clear();
+            } else {
+                current_command.push_str(line);
+                current_command.push('\n');
+            }
+        }
+    }
+
+    // Add any remaining command
+    if !current_command.trim().is_empty() {
+        commands.push(current_command);
+    }
+
+    commands
 }
 
 #[derive(serde::Serialize)]
@@ -526,6 +569,7 @@ struct User {
     name: String,
     email: String,
     user_id: Option<String>,
+    dept_id: Option<i32>,
 }
 
 #[derive(Deserialize, Serialize, FromRow)]

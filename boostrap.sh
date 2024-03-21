@@ -64,6 +64,7 @@ check_and_install() {
 
 # Utilizing the function for each package
 check_and_install cargo-binstall
+check_and_install cargo-shuttle
 
 # Add aliases if they don't exist
 declare -a aliases=(
