@@ -212,16 +212,8 @@ async fn status(
     match _auth {
         Some(_) => {
             // User is authenticated
-            match user_statuses(state).await {
-                Ok(status) => Ok(status),
-                Err(e) => {
-                    eprintln!("Failed to get user status: {:?}", e);
-                    let mut context = HashMap::new();
-                    context.insert("message", "Failed to get the user status.");
-                    Ok(Template::render("error", &context)) // Provide a context with a message.
-                }
-            }
-        }
+            user_statuses(state, false).await
+        },
         None => {
             // User is not authenticated, provide a message and render the login form.
             let mut ctx = HashMap::new();
@@ -231,8 +223,60 @@ async fn status(
     }
 }
 
-async fn user_statuses(state: &State<MyState>) -> Result<Template, Status> {
-    let mut user_statuses = sqlx::query_as::<_, UserStatus>(
+// only in status
+#[get("/status/in")]
+async fn status_in(
+    _auth: Option<Authenticated>,
+    state: &State<MyState>,
+) -> Result<Template, Status> {
+    match _auth {
+        Some(_) => {
+            // User is authenticated
+            user_statuses(state, true).await
+        },
+        None => {
+            // User is not authenticated, provide a message and render the login form.
+            let mut ctx = HashMap::new();
+            ctx.insert("message", "You are not authenticated.");
+            Ok(Template::render("loginform", &ctx)) // Ensure you return `Ok` here.
+        }
+    }
+}
+
+// get users that are currently in
+
+async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Template, Status> {
+    // appropriate template
+    let template_name = if filter_in { "users_in" } else { "user_statuses" };
+    // appropriate query
+    let sql_query = if filter_in {
+        r#"
+            SELECT
+                u.name,
+                p.in_out,
+                p.punch_time as last_punch_time
+            FROM
+                users u
+            INNER JOIN
+                punches p ON u.user_id = p.user_id
+            INNER JOIN
+                (
+                    SELECT
+                        user_id,
+                        MAX(punch_time) as max_punch_time
+                    FROM
+                        punches
+                    WHERE
+                        punch_time >= NOW() - INTERVAL '24 HOURS'
+                        AND in_out = 'in'  -- Filter for 'in' status
+                    GROUP BY
+                        user_id
+                ) as latest_punch ON p.user_id = latest_punch.user_id AND 
+                p.punch_time = latest_punch.max_punch_time
+            ORDER BY
+                u.name, p.punch_time DESC;
+        "#
+    } else {
     r#"
         SELECT
             u.name,
@@ -258,11 +302,12 @@ async fn user_statuses(state: &State<MyState>) -> Result<Template, Status> {
         ORDER BY
             u.name, p.punch_time DESC;
         "#
-
-    )
-    .fetch_all(&state.pool)
-    .await
-    .map_err(|_| Status::InternalServerError)?;
+    };
+    
+    let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<_, UserStatus>(sql_query)
+        .fetch_all(&state.pool)
+        .await
+        .map_err(|_| Status::InternalServerError)?;
 
     // sort by time
     user_statuses.sort_by(|a, b| b.last_punch_time.cmp(&a.last_punch_time));
@@ -288,7 +333,7 @@ async fn user_statuses(state: &State<MyState>) -> Result<Template, Status> {
         .collect();
 
     let context = context! { user_statuses: formatted_user_statuses };
-    Ok(Template::render("user_statuses", context))
+    Ok(Template::render(template_name, context))
 }
 
 // list of all users
@@ -462,7 +507,7 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
     let state = MyState { pool };
     let rocket = rocket::build()
         .attach(Template::fairing())
-        .mount("/user", routes![retrieve, add, add_bulk, status])
+        .mount("/user", routes![retrieve, add, add_bulk, status, status_in])
         .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
@@ -578,6 +623,7 @@ struct UserId {
     name: Option<String>,
 }
 
+// TODO: add Option<dept_id> to UserStatus
 #[derive(sqlx::FromRow, Serialize, Debug)]
 struct UserStatus {
     name: String,
