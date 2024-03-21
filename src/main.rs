@@ -212,7 +212,7 @@ async fn status(
     match _auth {
         Some(_) => {
             // User is authenticated
-            match current_status(state).await {
+            match user_statuses(state).await {
                 Ok(status) => Ok(status),
                 Err(e) => {
                     eprintln!("Failed to get user status: {:?}", e);
@@ -231,7 +231,7 @@ async fn status(
     }
 }
 
-async fn current_status(state: &State<MyState>) -> Result<Template, Status> {
+async fn user_statuses(state: &State<MyState>) -> Result<Template, Status> {
     let mut user_statuses = sqlx::query_as::<_, UserStatus>(
     r#"
         SELECT
@@ -479,7 +479,7 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
 
 // Define the function to initialize your database
 async fn initialize_db(pool: &PgPool) -> Result<(), Error> {
-    let init_sql = include_str!("../init.sql");
+    let init_sql = include_str!("../db_files/init.sql");
     let mut transaction = pool.begin().await.map_err(Error::msg)?;
 
     for command in split_sql_commands(init_sql) {
