@@ -1,24 +1,31 @@
 version: "3.8"
 
 services:
-  # app:
-  #   build: .  # Assumes there is a Dockerfile in the current directory
-  #   environment:
-  #     DB_URL: "postgres://cargoshuttleuser:cargoshuttlepass@db:5432/postgres"
-  #   depends_on:
-  #     - db
+  soko:
+    build: .
+    container_name: soko
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - rs-net
 
   db:
     image: postgres:latest
     container_name: pgsql
     environment:
-      POSTGRES_USER: localpgdb
-      POSTGRES_PASSWORD: localpgdbpass
-      POSTGRES_DB: postgres
-    ports:
-      - "5432:5432" # Map the PostgreSQL port to the host (optional)
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - local-pg-data:/var/lib/postgresql/data
+    networks:
+      - rs-net
 
 volumes:
   local-pg-data:
+
+networks:
+  rs-net:
+    driver: bridge
