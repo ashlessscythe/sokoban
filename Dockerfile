@@ -14,13 +14,9 @@ RUN cargo build --release
 RUN rm src/*.rs
 
 # Now that the dependencies are built, copy your source code
-COPY ./src ./src
-COPY ./migrations ./migrations
-COPY ./templates ./templates
-COPY ./static ./static
-COPY ./Rocket.toml ./Rocket.toml
+COPY . .
 # If you use dotenv
-COPY ./.env ./.env
+# COPY ./.env ./.env
 
 # Build for release.
 RUN rm ./target/release/deps/sokoban*
