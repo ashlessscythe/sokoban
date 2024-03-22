@@ -14,9 +14,9 @@ use rocket::{
 use rocket_dyn_templates::{Template, context};
 use sqlx::{Executor, FromRow, PgPool, Row};
 use sqlx::postgres::Postgres;
-use sqlx::error::Error;
+
 use std::{collections::HashMap, string::ToString};
-use dotenv::dotenv;
+
 use uuid::Uuid;
 
 
