@@ -499,6 +499,7 @@ async fn main() -> Result<(), rocket::Error> {
     dotenv::dotenv().ok();
     // Manually create a connection pool to the database
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    println!("database_url: {}", database_url);
     let pool = PgPool::connect(&database_url).await.expect("Failed to create pool");
 
     let state = MyState { pool };
