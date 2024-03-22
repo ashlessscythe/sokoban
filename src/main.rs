@@ -1,26 +1,24 @@
-#[macro_use]
-extern crate rocket;
+#[macro_use] extern crate rocket;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::US::Mountain;
-use rocket::form::Form;
-use rocket::fs::FileServer;
-use rocket::http::{Cookie, CookieJar, Status};
-use rocket::request::{FromRequest, Request};
-use rocket::response::status::BadRequest;
-use rocket::response::status::Custom;
-use rocket::response::Redirect;
-use rocket::serde::json::Json;
-use rocket::serde::{Deserialize, Serialize};
-use rocket::State;
-use rocket_dyn_templates::{context, Template};
-use shuttle_runtime::CustomError;
-use sqlx::Row;
-use sqlx::{Executor, FromRow, PgPool};
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use rocket::{
+    form::Form,
+    fs::FileServer,
+    http::{Cookie, CookieJar, Status},
+    request::{FromRequest, Request},
+    response::{status::{BadRequest, Custom}, Redirect},
+    serde::json::Json,
+    State,
+};
+use rocket_dyn_templates::{Template, context};
+use sqlx::{Executor, FromRow, PgPool, Row};
+use sqlx::postgres::Postgres;
+use sqlx::error::Error;
+use std::{collections::HashMap, string::ToString};
+use dotenv::dotenv;
 use uuid::Uuid;
-use sqlx::{postgres::PgQueryResult, Error as SqlxError};
-use anyhow::Error;
-use std::string::ToString;
+
 
 #[derive(FromForm)]
 struct LoginForm {
@@ -304,7 +302,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
         "#
     };
     
-    let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<_, UserStatus>(sql_query)
+    let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<Postgres, UserStatus>(sql_query)
         .fetch_all(&state.pool)
         .await
         .map_err(|_| Status::InternalServerError)?;
@@ -351,7 +349,7 @@ async fn user_list(state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest
 async fn punches_list(
     state: &State<MyState>,
 ) -> Result<Json<Vec<PunchWithUser>>, BadRequest<String>> {
-    let list = sqlx::query_as("SELECT * FROM punches_with_user")
+    let list: Vec<PunchWithUser> = sqlx::query_as("SELECT * FROM punches_with_user")
         .fetch_all(&state.pool)
         .await
         .map_err(|e| BadRequest(e.to_string()))?;
@@ -422,7 +420,7 @@ async fn punch(
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
     // insert punch into db
-    let punch = sqlx::query_as("INSERT INTO punches (user_id, in_out) VALUES ($1, $2) RETURNING *")
+    let punch = sqlx::query_as::<Postgres, PunchRecord>("INSERT INTO punches (user_id, in_out) VALUES ($1, $2) RETURNING *")
         .bind(id)
         .bind(&data.in_out)
         .fetch_one(&state.pool)
@@ -438,7 +436,7 @@ async fn last_punch(
     id: String,
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
-    let punch = sqlx::query_as::<_, PunchRecord>(
+    let punch = sqlx::query_as::<Postgres, PunchRecord>(
         "SELECT * FROM punches WHERE user_id = $1 ORDER BY id DESC LIMIT 1",
     )
     .bind(id)
@@ -496,19 +494,18 @@ fn register() -> Result<Template, BadRequest<String>> {
 }
 
 // routes
-#[shuttle_runtime::main]
-async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::ShuttleRocket {
-    // if let Err(e) = initialize_db(&pool).await {
-    //     eprintln!("Database initialization failed: {:?}", e);
-    // } else {
-    //     eprintln!("Database initialized using connection pool: {:?}", pool);
-    // }
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
+    dotenv::dotenv().ok();
+    // Manually create a connection pool to the database
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = PgPool::connect(&database_url).await.expect("Failed to create pool");
 
     let state = MyState { pool };
     let rocket = rocket::build()
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add, add_bulk, status, status_in])
-        .mount("/list", routes![user_list, punches_list]) // comment out to prevent listing
+        .mount("/list", routes![user_list, punches_list]) // Adjust as needed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from("static"))
         .mount("/id", routes![id_list])
@@ -519,22 +516,25 @@ async fn rocket(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_rocket::
         .register("/", catchers![not_found, internal_error])
         .manage(state);
 
-    Ok(rocket.into())
+    match rocket.launch().await {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 // Define the function to initialize your database
 async fn initialize_db(pool: &PgPool) -> Result<(), Error> {
     let init_sql = include_str!("../db_files/init.sql");
-    let mut transaction = pool.begin().await.map_err(Error::msg)?;
+    let mut transaction = pool.begin().await.map_err(|e| Error::PoolClosed)?;
 
     for command in split_sql_commands(init_sql) {
         let command = command.trim();
         if !command.is_empty() {
-            transaction.execute(command).await.map_err(Error::msg)?;
+            transaction.execute(command).await.map_err(|e| Error::PoolClosed)?;
         }
     }
 
-    transaction.commit().await.map_err(Error::msg)?;
+    transaction.commit().await.map_err(|e| Error::PoolClosed)?;
     Ok(())
 }
 
@@ -596,14 +596,14 @@ enum InOut {
     None,
 }
 
-#[derive(Deserialize, Serialize, FromRow)]
+#[derive(FromRow, Serialize)]
 struct PunchWithUser {
     user_name: String,
     in_out: InOut,
     punch_time: Option<NaiveDateTime>,
 }
 
-#[derive(Deserialize, Serialize, FromRow)]
+#[derive(FromRow, Serialize, Deserialize)]
 struct PunchRecord {
     in_out: InOut,
     punch_time: Option<NaiveDateTime>,
@@ -624,7 +624,7 @@ struct UserId {
 }
 
 // TODO: add Option<dept_id> to UserStatus
-#[derive(sqlx::FromRow, Serialize, Debug)]
+#[derive(sqlx::FromRow, Debug)]
 struct UserStatus {
     name: String,
     in_out: InOut,
@@ -637,7 +637,7 @@ struct UserStatusDisplay {
     last_punch_time: String, // Now it's a String to hold the formatted date
 }
 
-#[derive(sqlx::FromRow, Serialize)]
+#[derive(sqlx::FromRow)]
 struct UserInOutStatus {
     name: String,
     last_in_time: Option<NaiveDateTime>, // These are optional to handle 'NULL'

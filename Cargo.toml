@@ -7,16 +7,17 @@ edition = "2021"
 anyhow = "1.0.81"
 # missing a lib target
 cargo-watch = "8.5.2"
-chrono = "0.4.35"
+chrono =  { version = "0.4.35", features = ["serde"] }
 chrono-tz = "0.8.6"
+dotenv = "0.15.0"
 rocket = { version = "0.5.0", features = ["json", "secrets"] }
 rocket_dyn_templates = { version = "0.1.0", features = ["tera"] }
 serde = "1.0.148"
 serde_json = "1.0.114"
-shuttle-rocket = "0.41.0"
-shuttle-runtime = "0.41.0"
-shuttle-shared-db = { version = "0.41.0", features = ["postgres", "sqlx"] }
-sqlx = { version = "0.7.1", features = ["macros", "postgres", "chrono"] }
 tokio = "1.26.0"
-uuid = "1.7.0"
+uuid = { version = "1.8.0", features = ["v4"] }
 watch = "0.2.3"
+
+[dependencies.sqlx]
+version = "0.7.1"
+features = ["runtime-tokio", "macros", "postgres", "chrono"]

@@ -12,13 +12,13 @@ services:
     image: postgres:latest
     container_name: pgsql
     environment:
-      POSTGRES_USER: cargoshuttleuser
-      POSTGRES_PASSWORD: cargoshuttlepass
+      POSTGRES_USER: localpgdb
+      POSTGRES_PASSWORD: localpgdbpass
       POSTGRES_DB: postgres
     ports:
       - "5432:5432" # Map the PostgreSQL port to the host (optional)
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - local-pg-data:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
+  local-pg-data:
