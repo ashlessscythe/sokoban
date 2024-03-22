@@ -1,5 +1,5 @@
 # Start with a Rust image to build the project
-FROM rust:latest as builder
+FROM rust:bullseye as builder
 
 # Create a new empty shell project
 RUN USER=root cargo new --bin sokoban
@@ -28,10 +28,10 @@ RUN cargo build --release
 
 # The final stage
 # Start from a fresh image to reduce the size
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
-# Install needed packages
-RUN apt-get update && apt-get install -y libpq5 && rm -rf /var/lib/apt/lists/*
+# Install needed packages including OpenSSL
+RUN apt-get update && apt-get install -y libpq5 openssl && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage.
 COPY --from=builder /sokoban/target/release/sokoban .
