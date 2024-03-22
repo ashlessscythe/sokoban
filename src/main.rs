@@ -524,20 +524,20 @@ async fn main() -> Result<(), rocket::Error> {
 }
 
 // Define the function to initialize your database
-async fn initialize_db(pool: &PgPool) -> Result<(), Error> {
-    let init_sql = include_str!("../db_files/init.sql");
-    let mut transaction = pool.begin().await.map_err(|e| Error::PoolClosed)?;
+// async fn initialize_db(pool: &PgPool) -> Result<(), Error> {
+//     let init_sql = include_str!("../db_files/init.sql");
+//     let mut transaction = pool.begin().await.map_err(|e| Error::PoolClosed)?;
 
-    for command in split_sql_commands(init_sql) {
-        let command = command.trim();
-        if !command.is_empty() {
-            transaction.execute(command).await.map_err(|e| Error::PoolClosed)?;
-        }
-    }
+//     for command in split_sql_commands(init_sql) {
+//         let command = command.trim();
+//         if !command.is_empty() {
+//             transaction.execute(command).await.map_err(|e| Error::PoolClosed)?;
+//         }
+//     }
 
-    transaction.commit().await.map_err(|e| Error::PoolClosed)?;
-    Ok(())
-}
+//     transaction.commit().await.map_err(|e| Error::PoolClosed)?;
+//     Ok(())
+// }
 
 // split sql commands
 fn split_sql_commands(init_sql: &str) -> Vec<String> {
