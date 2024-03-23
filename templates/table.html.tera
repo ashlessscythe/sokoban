@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>User Table</title>
-    <link rel="stylesheet" href="../serve/css/style.css" />
+    <link rel="stylesheet" href="../static/css/style.css" />
   </head>
   <body>
     <h1>User Statuses</h1>

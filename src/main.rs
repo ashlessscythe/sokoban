@@ -520,13 +520,22 @@ async fn main() -> Result<(), rocket::Error> {
         .await
         .expect("Failed to create pool");
 
+    // state
     let state = MyState { pool };
+
+    // Serve static files
+    let static_files_dir = std::env::var("STATIC_FILES_DIR").unwrap_or_else(|_| "static".into());
+
+    // debug
+    println!("Current working directory: {:?}", std::env::current_dir());
+
+    // rocket
     let rocket = rocket::build()
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add, add_bulk, status, status_in])
         .mount("/list", routes![user_list, punches_list]) // Adjust as needed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
-        .mount("/static", FileServer::from("serve"))
+        .mount("/static", FileServer::from(static_files_dir))
         .mount("/id", routes![id_list])
         .mount(
             "/",

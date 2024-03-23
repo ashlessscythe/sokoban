@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Error Page</title>
     <!-- Link to your CSS files here -->
-    <link rel="stylesheet" href="../serve/css/global.css">
+    <link rel="stylesheet" href="../static/css/global.css">
 </head>
 <body>
     <div class="error-container">

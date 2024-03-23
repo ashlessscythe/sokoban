@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <title>User Statuses</title>
-    <link rel="stylesheet" href="../serve/css/style.css" />
-    <script src="../serve/js/helpers.js"></script>
+    <link rel="stylesheet" href="../static/css/style.css" />
+    <script src="../static/js/helpers.js"></script>
   </head>
   <body>
     <h1>User Statuses</h1>
