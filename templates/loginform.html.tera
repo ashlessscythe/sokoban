@@ -2,8 +2,8 @@
 <html>
   <head>
     <title>Simple Login</title>
-    <link rel="stylesheet" href="/static/css/style.css" />
-    <script src="/static/js/helpers.js"></script>
+    <link rel="stylesheet" href="../serve/css/style.css" />
+    <script src="../serve/js/helpers.js"></script>
   </head>
   <body>
     <form id="loginForm" class="form-container" action="/login" method="post">

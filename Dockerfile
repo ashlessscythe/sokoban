@@ -14,7 +14,10 @@ RUN cargo build --release
 RUN rm src/*.rs
 
 # Now that the dependencies are built, copy your source code
-COPY . .
+COPY . ./
+# static
+COPY ./serve ./serve
+
 # If you use dotenv
 # COPY ./.env ./.env
 

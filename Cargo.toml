@@ -7,7 +7,7 @@ edition = "2021"
 anyhow = "1.0.81"
 # missing a lib target
 cargo-watch = "8.5.2"
-chrono =  { version = "0.4.35", features = ["serde"] }
+chrono = { version = "0.4.35", features = ["serde"] }
 chrono-tz = "0.8.6"
 dotenv = "0.15.0"
 rocket = { version = "0.5.0", features = ["json", "secrets"] }

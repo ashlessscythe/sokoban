@@ -1,24 +1,27 @@
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::US::Mountain;
-use serde::{Deserialize, Serialize};
 use rocket::{
     form::Form,
     fs::FileServer,
     http::{Cookie, CookieJar, Status},
     request::{FromRequest, Request},
-    response::{status::{BadRequest, Custom}, Redirect},
+    response::{
+        status::{BadRequest, Custom},
+        Redirect,
+    },
     serde::json::Json,
     State,
 };
-use rocket_dyn_templates::{Template, context};
-use sqlx::{Executor, FromRow, PgPool, Row};
+use rocket_dyn_templates::{context, Template};
+use serde::{Deserialize, Serialize};
 use sqlx::postgres::Postgres;
+use sqlx::{FromRow, PgPool, Row};
 
 use std::{collections::HashMap, string::ToString};
 
 use uuid::Uuid;
-
 
 #[derive(FromForm)]
 struct LoginForm {
@@ -47,7 +50,12 @@ async fn login(
             success: true,
             message: "Login sucessful".to_string(),
             // redirect to where they were going
-            redirect: Some(cookies.get("redirect").map(|c| c.value().to_string()).unwrap_or("/home".to_string())),
+            redirect: Some(
+                cookies
+                    .get("redirect")
+                    .map(|c| c.value().to_string())
+                    .unwrap_or("/home".to_string()),
+            ),
         }))
     } else {
         Ok(Json(LoginResponse {
@@ -203,15 +211,12 @@ async fn userlist(
 
 // get status /status only if auth
 #[get("/status")]
-async fn status(
-    _auth: Option<Authenticated>,
-    state: &State<MyState>,
-) -> Result<Template, Status> {
+async fn status(_auth: Option<Authenticated>, state: &State<MyState>) -> Result<Template, Status> {
     match _auth {
         Some(_) => {
             // User is authenticated
             user_statuses(state, false).await
-        },
+        }
         None => {
             // User is not authenticated, provide a message and render the login form.
             let mut ctx = HashMap::new();
@@ -224,14 +229,14 @@ async fn status(
 // only in status
 #[get("/status/in")]
 async fn status_in(
-    _auth: Option<Authenticated>,
+    _b_auth: Option<Authenticated>,
     state: &State<MyState>,
 ) -> Result<Template, Status> {
-    match _auth {
+    match _b_auth {
         Some(_) => {
             // User is authenticated
             user_statuses(state, true).await
-        },
+        }
         None => {
             // User is not authenticated, provide a message and render the login form.
             let mut ctx = HashMap::new();
@@ -245,7 +250,11 @@ async fn status_in(
 
 async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Template, Status> {
     // appropriate template
-    let template_name = if filter_in { "users_in" } else { "user_statuses" };
+    let template_name = if filter_in {
+        "users_in"
+    } else {
+        "user_statuses"
+    };
     // appropriate query
     let sql_query = if filter_in {
         r#"
@@ -275,7 +284,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
                 u.name, p.punch_time DESC;
         "#
     } else {
-    r#"
+        r#"
         SELECT
             u.name,
             p.in_out,
@@ -301,7 +310,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
             u.name, p.punch_time DESC;
         "#
     };
-    
+
     let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<Postgres, UserStatus>(sql_query)
         .fetch_all(&state.pool)
         .await
@@ -370,7 +379,10 @@ async fn retrieve(id: String, state: &State<MyState>) -> Result<Json<User>, BadR
 }
 
 #[post("/bulk", data = "<data>")]
-async fn add_bulk(data: Json<Vec<User>>, state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<String>> {
+async fn add_bulk(
+    data: Json<Vec<User>>,
+    state: &State<MyState>,
+) -> Result<Json<Vec<User>>, BadRequest<String>> {
     let mut users = Vec::new();
 
     for user_data in data.into_inner() {
@@ -379,14 +391,16 @@ async fn add_bulk(data: Json<Vec<User>>, state: &State<MyState>) -> Result<Json<
             Some(id) => id.to_string(),
             None => Uuid::new_v4().to_string(),
         };
-        let user = sqlx::query_as("INSERT INTO users (name, email, user_id, dept_id) VALUES ($1, $2, $3, $4) RETURNING *")
-            .bind(&user_data.name)
-            .bind(&user_data.email)
-            .bind(user_id.to_string())
-            .bind(user_data.dept_id)
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| BadRequest(e.to_string()))?;
+        let user = sqlx::query_as(
+            "INSERT INTO users (name, email, user_id, dept_id) VALUES ($1, $2, $3, $4) RETURNING *",
+        )
+        .bind(&user_data.name)
+        .bind(&user_data.email)
+        .bind(user_id.to_string())
+        .bind(user_data.dept_id)
+        .fetch_one(&state.pool)
+        .await
+        .map_err(|e| BadRequest(e.to_string()))?;
         users.push(user);
     }
 
@@ -420,12 +434,14 @@ async fn punch(
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
     // insert punch into db
-    let punch = sqlx::query_as::<Postgres, PunchRecord>("INSERT INTO punches (user_id, in_out) VALUES ($1, $2) RETURNING *")
-        .bind(id)
-        .bind(&data.in_out)
-        .fetch_one(&state.pool)
-        .await
-        .map_err(|e| BadRequest(e.to_string()))?;
+    let punch = sqlx::query_as::<Postgres, PunchRecord>(
+        "INSERT INTO punches (user_id, in_out) VALUES ($1, $2) RETURNING *",
+    )
+    .bind(id)
+    .bind(&data.in_out)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| BadRequest(e.to_string()))?;
 
     Ok(Json(punch))
 }
@@ -500,7 +516,9 @@ async fn main() -> Result<(), rocket::Error> {
     // Manually create a connection pool to the database
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     println!("database_url: {}", database_url);
-    let pool = PgPool::connect(&database_url).await.expect("Failed to create pool");
+    let pool = PgPool::connect(&database_url)
+        .await
+        .expect("Failed to create pool");
 
     let state = MyState { pool };
     let rocket = rocket::build()
@@ -508,7 +526,7 @@ async fn main() -> Result<(), rocket::Error> {
         .mount("/user", routes![retrieve, add, add_bulk, status, status_in])
         .mount("/list", routes![user_list, punches_list]) // Adjust as needed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
-        .mount("/static", FileServer::from("static"))
+        .mount("/static", FileServer::from("serve"))
         .mount("/id", routes![id_list])
         .mount(
             "/",
@@ -521,67 +539,6 @@ async fn main() -> Result<(), rocket::Error> {
         Ok(_) => Ok(()),
         Err(e) => Err(e),
     }
-}
-
-// Define the function to initialize your database
-// async fn initialize_db(pool: &PgPool) -> Result<(), Error> {
-//     let init_sql = include_str!("../db_files/init.sql");
-//     let mut transaction = pool.begin().await.map_err(|e| Error::PoolClosed)?;
-
-//     for command in split_sql_commands(init_sql) {
-//         let command = command.trim();
-//         if !command.is_empty() {
-//             transaction.execute(command).await.map_err(|e| Error::PoolClosed)?;
-//         }
-//     }
-
-//     transaction.commit().await.map_err(|e| Error::PoolClosed)?;
-//     Ok(())
-// }
-
-// split sql commands
-fn split_sql_commands(init_sql: &str) -> Vec<String> {
-    let mut commands = Vec::new();
-    let mut current_command = String::new();
-    let mut in_block = false;
-    println!("init_sql: {}", init_sql);
-
-    for line in init_sql.lines() {
-        if line.contains("DO $$") {
-            in_block = true;
-        }
-
-        if in_block {
-            // Add the line to the current command and continue until the block ends
-            current_command.push_str(line);
-            current_command.push('\n');
-            println!("current_command: {}", current_command);
-            
-            if line.contains("$$") {
-                in_block = false;
-                commands.push(current_command.clone());
-                current_command.clear();
-            }
-        } else {
-            // If not in a block, handle line by line as separate commands
-            if line.trim().ends_with(';') {
-                current_command.push_str(line);
-                println!("current_command: {}", current_command);
-                commands.push(current_command.clone());
-                current_command.clear();
-            } else {
-                current_command.push_str(line);
-                current_command.push('\n');
-            }
-        }
-    }
-
-    // Add any remaining command
-    if !current_command.trim().is_empty() {
-        commands.push(current_command);
-    }
-
-    commands
 }
 
 #[derive(serde::Serialize)]
@@ -636,11 +593,4 @@ struct UserStatusDisplay {
     name: String,
     in_out: InOut,
     last_punch_time: String, // Now it's a String to hold the formatted date
-}
-
-#[derive(sqlx::FromRow)]
-struct UserInOutStatus {
-    name: String,
-    last_in_time: Option<NaiveDateTime>, // These are optional to handle 'NULL'
-    last_out_time: Option<NaiveDateTime>,
 }
