@@ -16,10 +16,14 @@ RUN rm src/*.rs
 # Now that the dependencies are built, copy your source code
 COPY . ./
 # static
-COPY ./serve /static/
+COPY ./static ./static
+COPY ./templates ./templates
+COPY ./db_files ./db_files
+COPY ./src ./src
+COPY ./Rocket.toml ./Rocket.toml
 
 # If you use dotenv
-# COPY ./.env ./.env
+COPY ./.env ./.env
 
 # Build for release.
 RUN rm ./target/release/deps/sokoban*
@@ -34,9 +38,7 @@ RUN apt-get update && apt-get install -y libpq5 openssl && rm -rf /var/lib/apt/l
 
 # Copy the built binary from the builder stage.
 COPY --from=builder /sokoban/target/release/sokoban .
-#
-# Copy the static files from the builder stage.
-COPY --from=builder /static /static
+COPY --from=builder /sokoban/ ./
 
 # Set the default command to run when starting the container
 CMD ["./sokoban"]

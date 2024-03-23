@@ -1,6 +1,5 @@
 [release]
-secret_key = "1B0/u+xGdAS5Uos0LTrdLpdY5d4DsTirwDaxTck2oYI="
+secret_key = "XR4l75OGsHjXYQlP2EBFx23wj+ZBwBilpF7/KyOUVfY="
 
 [default]
 address = "0.0.0.0"
-
