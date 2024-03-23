@@ -2,7 +2,7 @@
 
 # Update and install necessary packages
 sudo apt-get update
-sudo apt-get install -y tmux tig cargo pgcli postgresql-client postgresql-client-common libpq-dev
+sudo apt-get install -y tmux ranger tig cargo pgcli postgresql-client postgresql-client-common libpq-dev
 
 # Clone the GitHub repository into a directory named "tmux" if it doesn't already exist
 if [ ! -d "$HOME/tmux" ]; then
@@ -63,8 +63,8 @@ check_and_install() {
 }
 
 # Utilizing the function for each package
-check_and_install cargo-binstall
-check_and_install cargo-shuttle
+# check_and_install cargo-binstall
+# check_and_install cargo-shuttle
 
 # Add aliases if they don't exist
 declare -a aliases=(
