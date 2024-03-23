@@ -533,7 +533,7 @@ async fn main() -> Result<(), rocket::Error> {
     let rocket = rocket::build()
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add, add_bulk, status, status_in])
-        .mount("/list", routes![user_list, punches_list]) // Adjust as needed
+        // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from(static_files_dir))
         .mount("/id", routes![id_list])
