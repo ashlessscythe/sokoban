@@ -2,5 +2,6 @@
 .env
 .shuttle-storage
 Secrets*.toml
+.env
 ignoreme/
 *.dump
