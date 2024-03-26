@@ -57,6 +57,16 @@ DO $$ BEGIN
     ALTER TABLE departments
     ADD FOREIGN KEY (bossId) REFERENCES users(user_id);
   END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.table_constraints 
+    WHERE constraint_name = 'fk_dept_id'
+  ) THEN
+    ALTER TABLE users
+    ADD CONSTRAINT fk_dept_id
+    FOREIGN KEY (dept_id)
+    REFERENCES departments(id);
+  END IF;
 END $$;
 
 -- Views

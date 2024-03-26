@@ -212,8 +212,8 @@ async fn userlist(
 }
 
 // get status /status only if auth
-#[get("/status")]
-async fn status(_auth: Option<Authenticated>, state: &State<MyState>) -> Result<Template, Status> {
+#[get("/status_list")]
+async fn status_list(_auth: Option<Authenticated>, state: &State<MyState>) -> Result<Template, Status> {
     match _auth {
         Some(_) => {
             // User is authenticated
@@ -229,7 +229,7 @@ async fn status(_auth: Option<Authenticated>, state: &State<MyState>) -> Result<
 }
 
 // only in status
-#[get("/status/in")]
+#[get("/status_in")]
 async fn status_in(
     _b_auth: Option<Authenticated>,
     state: &State<MyState>,
@@ -253,37 +253,42 @@ async fn status_in(
 async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Template, Status> {
     // appropriate template
     let template_name = if filter_in {
-        "users_in"
+        "status_in"
     } else {
-        "user_statuses"
+        "status_list"
     };
     // appropriate query
     let sql_query = if filter_in {
         r#"
-            SELECT
-                u.name,
-                p.in_out,
-                p.punch_time as last_punch_time
-            FROM
-                users u
-            INNER JOIN
-                punches p ON u.user_id = p.user_id
-            INNER JOIN
-                (
-                    SELECT
-                        user_id,
-                        MAX(punch_time) as max_punch_time
-                    FROM
-                        punches
-                    WHERE
-                        punch_time >= NOW() - INTERVAL '24 HOURS'
-                        AND in_out = 'in'  -- Filter for 'in' status
-                    GROUP BY
-                        user_id
-                ) as latest_punch ON p.user_id = latest_punch.user_id AND 
-                p.punch_time = latest_punch.max_punch_time
-            ORDER BY
-                u.name, p.punch_time DESC;
+         SELECT
+        u.name,
+        d.name as department_name, -- Added department name
+        p.in_out,
+        p.punch_time as last_punch_time
+        FROM
+            users u
+        INNER JOIN
+            departments d ON u.dept_id = d.id -- Join with departments
+        INNER JOIN
+            punches p ON u.user_id = p.user_id
+        INNER JOIN
+            (
+                SELECT
+                    user_id,
+                    MAX(punch_time) as max_punch_time
+                FROM
+                    punches
+                WHERE
+                    punch_time >= NOW() - INTERVAL '24 HOURS'
+                    AND in_out = 'in'  -- Filter for 'in' status
+                GROUP BY
+                    user_id
+            ) as latest_punch ON p.user_id = latest_punch.user_id AND 
+                                p.punch_time = latest_punch.max_punch_time
+        WHERE
+            u.dept_id = d.id -- Added this condition to ensure correct department
+        ORDER BY
+            u.name, p.punch_time DESC;
         "#
     } else {
         r#"
@@ -342,6 +347,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
         .collect();
 
     let context = context! { user_statuses: formatted_user_statuses };
+    println!("template_name: {:?}", template_name);
     Ok(Template::render(template_name, context))
 }
 
@@ -569,7 +575,7 @@ async fn main() -> Result<(), rocket::Error> {
     let rocket = rocket::build()
         .attach(cors)
         .attach(Template::fairing())
-        .mount("/user", routes![retrieve, add, add_bulk, status, status_in])
+        .mount("/user", routes![retrieve, add, add_bulk, status_list, status_in])
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from(static_files_dir))
@@ -633,6 +639,7 @@ struct UserStatus {
     name: String,
     in_out: InOut,
     last_punch_time: NaiveDateTime,
+    dept_name: Option<String>,
 }
 #[derive(sqlx::FromRow, Serialize)]
 struct UserStatusDisplay {

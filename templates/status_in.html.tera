@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>User Statuses</title>
+    <link rel="stylesheet" href="../static/css/style.css" />
+    <script src="../static/js/helpers.js"></script>
+  </head>
+  <body>
+    <div style="display: flex; align-items: center">
+      <button
+        class="circle-button"
+        onclick="location.href='/home'"
+        style="
+          display: block;
+          margin-bottom: 20px;
+          margin-right: 20px;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          overflow: hidden;
+          padding: 0;
+          border: none;
+        "
+      >
+        <img
+          src="../static/images/back_arrow.png"
+          alt="Go to Homepage"
+          style="width: 100%; height: auto"
+        />
+      </button>
+      <h1>User Statuses</h1>
+    </div>
+    <div
+      class="table-container"
+      style="height: 60vh; min-height: 200px; overflow: auto"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Department</th>
+            <th>Last Punch Time</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          {% for user_status in user_statuses %}
+          <tr>
+            <td>{{ user_status.name }}</td>
+            <td>{{ user_status.in_out }}</td>
+            <td>{{ user_status.department }}</td>
+            <td class="iso-date">{{ user_status.last_punch_time }}</td>
+          </tr>
+          {% endfor %}
+          <div
+            id="scroll-arrow"
+            style="display: none; position: fixed; bottom: 10px; right: 10px"
+          >
+            <img src="../../static/images/scroll_arrow.png" alt="Scroll down" />
+          </div>
+        </tbody>
+      </table>
+    </div>
+    <button
+      class="block-button"
+      onclick="location.href='/home'"
+      style="position: fixed; bottom: 0"
+    >
+      Go to Homepage
+    </button>
+  </body>
+</html>
+
+<script>
+  startInactivityTimer(60000);
+  setNumberOfRows(15);
+  console.log(
+    "Number of rows: " + document.getElementById("table-body").rows.length
+  );
+
+  // Function to control the number of rows
+  function setNumberOfRows(numRows) {
+    var tableBody = document.getElementById("table-body");
+    while (tableBody.rows.length > numRows) {
+      tableBody.deleteRow(numRows);
+    }
+  }
+  function setNumberOfRows(numRows) {
+    var tableBody = document.getElementById("table-body");
+    var scrollArrow = document.getElementById("scroll-arrow");
+    while (tableBody.rows.length > numRows) {
+      tableBody.deleteRow(numRows);
+    }
+    if (tableBody.rows.length > numRows) {
+      scrollArrow.style.display = "block";
+    } else {
+      scrollArrow.style.display = "none";
+    }
+  }
+</script>
+
+<style>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  table,
+  th,
+  td {
+    border: 2px double #ddd; /* Double lines for grid */
+  }
+
+  th,
+  td {
+    padding: 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f2f2f2;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  th:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    backdrop-filter: blur(5px);
+    z-index: -1;
+  }
+
+  tr:hover {
+    background-color: #e8e8e8; /* Highlight on hover */
+  }
+  .circle-button {
+    display: block;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    padding: 0;
+    border: none;
+    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  }
+
+  .circle-button:hover {
+    transform: translateY(-5px);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  .circle-button img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* This is a class to format the date, we'll add it in the <td> tag */
+  .iso-date {
+    white-space: nowrap; /* Prevents wrapping */
+  }
+</style>

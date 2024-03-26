@@ -9,7 +9,7 @@
 <body>
 <div id="app-container">
     <div class="logo-container">
-        <img src="/static/images/company_logo.jpg" alt="Company Logo">
+        <img src="../static/images/company_logo.jpg" alt="Company Logo">
     </div>
     <div class="user-details-container">
         <form id="punchForm" class="form-container">
@@ -22,7 +22,10 @@
         <div class="button-container">
             <ul class="horizontal-buttons">
                 <li>
-                    <button class="block-button" onclick="location.href='/user/status'">List</button>
+                    <button class="block-button" onclick="location.href='/status_list'">List</button>
+                </li>
+                <li>
+                    <button class="block-button" onclick="location.href='/status_in'">Status In</button>
                 </li>
                 <li>
                     <button class="block-button" onclick="location.href='/register'">Register</button>
