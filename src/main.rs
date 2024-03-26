@@ -555,7 +555,7 @@ async fn main() -> Result<(), rocket::Error> {
 
     let cors = CorsOptions {
         allowed_origins: AllowedOrigins::some_exact(&origins), // Adjust according to your needs
-        allowed_methods: vec![Method::Get, Method::Post, Method::Put, Method::Delete]
+        allowed_methods: vec![Method::Get, Method::Post]
             .into_iter()
             .map(From::from)
             .collect(),
