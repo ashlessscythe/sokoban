@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # define url
-URL="http://localhost:8000"
-# URL="https://sokoban.shuttleapp.rs"
+# URL="http://localhost:8000"
+URL="https://smart-tandy-ashless.koyeb.app"
 
 # if no args provided print usage
 if [ $# -eq 0 ]; then
