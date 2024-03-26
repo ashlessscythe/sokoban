@@ -573,7 +573,7 @@ async fn main() -> Result<(), rocket::Error> {
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/static", FileServer::from(static_files_dir))
-        .mount("/id", routes![id_list])
+        // .mount("/id", routes![id_list])
         .mount(
             "/",
             routes![index, home, login, login_form, userlist, register, error_page],
