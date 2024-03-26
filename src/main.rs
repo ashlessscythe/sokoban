@@ -212,7 +212,7 @@ async fn userlist(
 }
 
 // get status /status only if auth
-#[get("/list")]
+#[get("/status_list")]
 async fn status_list(_auth: Option<Authenticated>, state: &State<MyState>) -> Result<Template, Status> {
     match _auth {
         Some(_) => {
@@ -230,7 +230,7 @@ async fn status_list(_auth: Option<Authenticated>, state: &State<MyState>) -> Re
 }
 
 // only in status
-#[get("/in")]
+#[get("/status_in")]
 async fn status_in(
     _b_auth: Option<Authenticated>,
     state: &State<MyState>,
@@ -255,9 +255,9 @@ async fn status_in(
 async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Template, Status> {
     // appropriate template
     let template_name = if filter_in {
-        "statusIn"
+        "status_in"
     } else {
-        "statusList"
+        "status_list"
     };
     println!("template_name: {:?}", template_name);
     // appropriate query

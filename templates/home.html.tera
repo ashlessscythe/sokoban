@@ -22,10 +22,10 @@
         <div class="button-container">
             <ul class="horizontal-buttons">
                 <li>
-                    <button class="block-button" onclick="location.href='/status/list'">List</button>
+                    <button class="block-button" onclick="location.href='/status/status_list'">List</button>
                 </li>
                 <li>
-                    <button class="block-button" onclick="location.href='/status/in'">Status In</button>
+                    <button class="block-button" onclick="location.href='/status/status_in'">Status In</button>
                 </li>
                 <li>
                     <button class="block-button" onclick="location.href='/register'">Register</button>
