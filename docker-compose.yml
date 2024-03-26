@@ -20,7 +20,7 @@ services:
     image: postgres:latest
     container_name: pgsql
     environment:
-      POSTGRESS_USER: root
+      POSTGRESS_USER: postgres
       POSTGRES_PASSWORD: dbpass
       POSTGRES_DB: soko-db
     ports:

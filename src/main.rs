@@ -2,6 +2,7 @@
 extern crate rocket;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::US::Mountain;
+use rocket::http::Method;
 use rocket::{
     form::Form,
     fs::FileServer,
@@ -14,6 +15,7 @@ use rocket::{
     serde::json::Json,
     State,
 };
+use rocket_cors::{AllowedOrigins, CorsOptions};
 use rocket_dyn_templates::{context, Template};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::Postgres;
@@ -520,17 +522,52 @@ async fn main() -> Result<(), rocket::Error> {
         .await
         .expect("Failed to create pool");
 
-    // state
+    // state & static files
     let state = MyState { pool };
-
-    // Serve static files
     let static_files_dir = std::env::var("STATIC_FILES_DIR").unwrap_or_else(|_| "static".into());
 
     // debug
     println!("Current working directory: {:?}", std::env::current_dir());
 
+    // cors
+    // let db_host = database_url
+    //     .split('@')
+    //     .last()
+    //     .unwrap()
+    //     .split('/')
+    //     .next()
+    //     .unwrap();
+    //
+    // println!("db host is: ", &db_host.to_string());
+
+    // let origins_str = std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| String::from(db_host));
+    let origins_str =
+        std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "http://localhost:8000/".into());
+    let origins = origins_str
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .collect::<Vec<String>>();
+    println!("origins are {:?}", &origins);
+
+    // if !origins.contains(&db_host.to_string()) {
+    //     origins.push(db_host.to_string());
+    // }
+
+    let cors = CorsOptions {
+        allowed_origins: AllowedOrigins::some_exact(&origins), // Adjust according to your needs
+        allowed_methods: vec![Method::Get, Method::Post, Method::Put, Method::Delete]
+            .into_iter()
+            .map(From::from)
+            .collect(),
+        allow_credentials: true,
+        ..Default::default()
+    }
+    .to_cors()
+    .expect("error while building CORS");
+
     // rocket
     let rocket = rocket::build()
+        .attach(cors)
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add, add_bulk, status, status_in])
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
