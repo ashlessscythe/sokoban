@@ -23,7 +23,7 @@ COPY ./src ./src
 COPY ./Rocket.toml ./Rocket.toml
 
 # If you use dotenv
-COPY ./.env ./.env
+# COPY ./.env ./.env
 
 # Build for release.
 RUN rm ./target/release/deps/sokoban*
