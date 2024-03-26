@@ -212,11 +212,12 @@ async fn userlist(
 }
 
 // get status /status only if auth
-#[get("/status_list")]
+#[get("/list")]
 async fn status_list(_auth: Option<Authenticated>, state: &State<MyState>) -> Result<Template, Status> {
     match _auth {
         Some(_) => {
             // User is authenticated
+            println!("getting template for status list");
             user_statuses(state, false).await
         }
         None => {
@@ -229,7 +230,7 @@ async fn status_list(_auth: Option<Authenticated>, state: &State<MyState>) -> Re
 }
 
 // only in status
-#[get("/status_in")]
+#[get("/in")]
 async fn status_in(
     _b_auth: Option<Authenticated>,
     state: &State<MyState>,
@@ -237,6 +238,7 @@ async fn status_in(
     match _b_auth {
         Some(_) => {
             // User is authenticated
+            println!("getting template for in status");
             user_statuses(state, true).await
         }
         None => {
@@ -253,42 +255,38 @@ async fn status_in(
 async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Template, Status> {
     // appropriate template
     let template_name = if filter_in {
-        "status_in"
+        "statusIn"
     } else {
-        "status_list"
+        "statusList"
     };
+    println!("template_name: {:?}", template_name);
     // appropriate query
     let sql_query = if filter_in {
         r#"
-         SELECT
-        u.name,
-        d.name as department_name, -- Added department name
-        p.in_out,
-        p.punch_time as last_punch_time
-        FROM
-            users u
-        INNER JOIN
-            departments d ON u.dept_id = d.id -- Join with departments
-        INNER JOIN
-            punches p ON u.user_id = p.user_id
-        INNER JOIN
-            (
-                SELECT
-                    user_id,
-                    MAX(punch_time) as max_punch_time
-                FROM
-                    punches
-                WHERE
-                    punch_time >= NOW() - INTERVAL '24 HOURS'
-                    AND in_out = 'in'  -- Filter for 'in' status
-                GROUP BY
-                    user_id
-            ) as latest_punch ON p.user_id = latest_punch.user_id AND 
-                                p.punch_time = latest_punch.max_punch_time
-        WHERE
-            u.dept_id = d.id -- Added this condition to ensure correct department
-        ORDER BY
-            u.name, p.punch_time DESC;
+            SELECT
+                u.name,
+                p.in_out,
+                p.punch_time as last_punch_time
+            FROM
+                users u
+            INNER JOIN
+                punches p ON u.user_id = p.user_id
+            INNER JOIN
+                (
+                    SELECT
+                        user_id,
+                        MAX(punch_time) as max_punch_time
+                    FROM
+                        punches
+                    WHERE
+                        punch_time >= NOW() - INTERVAL '24 HOURS'
+                        AND in_out = 'in'  -- Filter for 'in' status
+                    GROUP BY
+                        user_id
+                ) as latest_punch ON p.user_id = latest_punch.user_id AND 
+                p.punch_time = latest_punch.max_punch_time
+            ORDER BY
+                u.name, p.punch_time DESC;
         "#
     } else {
         r#"
@@ -535,18 +533,6 @@ async fn main() -> Result<(), rocket::Error> {
     // debug
     println!("Current working directory: {:?}", std::env::current_dir());
 
-    // cors
-    // let db_host = database_url
-    //     .split('@')
-    //     .last()
-    //     .unwrap()
-    //     .split('/')
-    //     .next()
-    //     .unwrap();
-    //
-    // println!("db host is: ", &db_host.to_string());
-
-    // let origins_str = std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| String::from(db_host));
     let origins_str =
         std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "http://localhost:8000/".into());
     let origins = origins_str
@@ -554,10 +540,6 @@ async fn main() -> Result<(), rocket::Error> {
         .map(|s| s.trim().to_string())
         .collect::<Vec<String>>();
     println!("origins are {:?}", &origins);
-
-    // if !origins.contains(&db_host.to_string()) {
-    //     origins.push(db_host.to_string());
-    // }
 
     let cors = CorsOptions {
         allowed_origins: AllowedOrigins::some_exact(&origins), // Adjust according to your needs
@@ -575,14 +557,15 @@ async fn main() -> Result<(), rocket::Error> {
     let rocket = rocket::build()
         .attach(cors)
         .attach(Template::fairing())
-        .mount("/user", routes![retrieve, add, add_bulk, status_list, status_in])
+        .mount("/user", routes![retrieve, add, add_bulk])
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
+        .mount("/status", routes![status_list, status_in])
         .mount("/static", FileServer::from(static_files_dir))
         .mount("/id", routes![id_list])
         .mount(
             "/",
-            routes![index, home, login, login_form, userlist, register, error_page],
+            routes![index, home, login, login_form, register, error_page],
         )
         .register("/", catchers![not_found, internal_error])
         .manage(state);
