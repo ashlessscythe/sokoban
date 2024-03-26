@@ -2,7 +2,16 @@
 
 # Update and install necessary packages
 sudo apt-get update
-sudo apt-get install -y tmux ranger tig cargo pgcli postgresql-client postgresql-client-common libpq-dev
+sudo apt-get install -y tmux ranger tig cargo pgcli postgresql-client postgresql-client-common libpq-dev python-dev
+
+# Remove pgcli if installed via apt
+sudo apt-get remove -y pgcli
+
+# Ensure Python pip is installed
+sudo apt-get install -y python3-pip
+
+# Install pgcli via pip
+sudo pip3 install pgcli
 
 # Clone the GitHub repository into a directory named "tmux" if it doesn't already exist
 if [ ! -d "$HOME/tmux" ]; then
