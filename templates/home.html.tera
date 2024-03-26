@@ -14,7 +14,7 @@
     <div class="user-details-container">
         <form id="punchForm" class="form-container">
             <h2>Scan your badge</h2>
-            <label for="scan">Scan</label>
+            <label for="userIdInput">Scan</label>
             <input class="user-input" type="password" id="userIdInput" name="user_id" placeholder="Enter User ID" required autofocus>
             <button class="big-button" type="submit">Scan</button>
         </form>
