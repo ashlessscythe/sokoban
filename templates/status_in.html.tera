@@ -49,7 +49,7 @@
           <tr>
             <td>{{ user_status.name }}</td>
             <td>{{ user_status.in_out }}</td>
-            <td>{{ user_status.department }}</td>
+            <td>{{ user_status.dept_name }}</td>
             <td class="iso-date">{{ user_status.last_punch_time }}</td>
           </tr>
           {% endfor %}

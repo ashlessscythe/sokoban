@@ -213,7 +213,10 @@ async fn userlist(
 
 // get status /status only if auth
 #[get("/status_list")]
-async fn status_list(_auth: Option<Authenticated>, state: &State<MyState>) -> Result<Template, Status> {
+async fn status_list(
+    _auth: Option<Authenticated>,
+    state: &State<MyState>,
+) -> Result<Template, Status> {
     match _auth {
         Some(_) => {
             // User is authenticated
@@ -263,41 +266,54 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
     // appropriate query
     let sql_query = if filter_in {
         r#"
-            SELECT
-                u.name,
-                p.in_out,
-                p.punch_time as last_punch_time
-            FROM
-                users u
-            INNER JOIN
-                punches p ON u.user_id = p.user_id
-            INNER JOIN
-                (
-                    SELECT
-                        user_id,
-                        MAX(punch_time) as max_punch_time
-                    FROM
-                        punches
-                    WHERE
-                        punch_time >= NOW() - INTERVAL '24 HOURS'
-                        AND in_out = 'in'  -- Filter for 'in' status
-                    GROUP BY
-                        user_id
-                ) as latest_punch ON p.user_id = latest_punch.user_id AND 
-                p.punch_time = latest_punch.max_punch_time
-            ORDER BY
-                u.name, p.punch_time DESC;
+        SELECT
+            u.name,
+            latest_punch.in_out,
+            latest_punch.last_punch_time,
+            COALESCE(d.name, 'No Department') as dept_name
+        FROM
+            users u
+        LEFT JOIN
+            departments d ON u.dept_id = d.id
+        INNER JOIN
+            (
+                SELECT
+                    p.user_id,
+                    p.in_out,
+                    p.punch_time as last_punch_time
+                FROM
+                    punches p
+                INNER JOIN
+                    (
+                        SELECT
+                            user_id,
+                            MAX(punch_time) as max_punch_time
+                        FROM
+                            punches
+                        WHERE
+                            punch_time >= NOW() - INTERVAL '24 HOURS'
+                        GROUP BY
+                            user_id
+                    ) as max_punch ON p.user_id = max_punch.user_id AND p.punch_time = max_punch.max_punch_time
+                WHERE
+                    p.in_out = 'in'
+            ) as latest_punch ON u.user_id = latest_punch.user_id
+        ORDER BY
+            u.name, latest_punch.last_punch_time DESC;
         "#
     } else {
         r#"
         SELECT
             u.name,
             p.in_out,
-            p.punch_time as last_punch_time
+            p.punch_time as last_punch_time,
+            COALESCE(d.name, 'No Department') as dept_name
         FROM
             users u
         INNER JOIN
             punches p ON u.user_id = p.user_id
+        LEFT JOIN
+            departments d ON u.dept_id = d.id
         INNER JOIN
             (
                 SELECT
@@ -319,7 +335,10 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
     let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<Postgres, UserStatus>(sql_query)
         .fetch_all(&state.pool)
         .await
-        .map_err(|_| Status::InternalServerError)?;
+        .map_err(|e| {
+            eprintln!("Failed to get user statuses: {:?}", e);
+            Status::InternalServerError
+        })?;
 
     // sort by time
     user_statuses.sort_by(|a, b| b.last_punch_time.cmp(&a.last_punch_time));
@@ -340,6 +359,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
                 name: status.name,
                 in_out: status.in_out,
                 last_punch_time: formatted_time, // This will now be a String
+                dept_name: status.dept_name,
             }
         })
         .collect();
@@ -562,7 +582,7 @@ async fn main() -> Result<(), rocket::Error> {
         .mount("/punch", routes![punch, last_punch, get_user_punches])
         .mount("/status", routes![status_list, status_in])
         .mount("/static", FileServer::from(static_files_dir))
-        .mount("/id", routes![id_list])
+        // .mount("/id", routes![id_list])
         .mount(
             "/",
             routes![index, home, login, login_form, register, error_page],
@@ -622,11 +642,12 @@ struct UserStatus {
     name: String,
     in_out: InOut,
     last_punch_time: NaiveDateTime,
-    dept_name: Option<String>,
+    dept_name: String,
 }
 #[derive(sqlx::FromRow, Serialize)]
 struct UserStatusDisplay {
     name: String,
     in_out: InOut,
     last_punch_time: String, // Now it's a String to hold the formatted date
+    dept_name: String,
 }
