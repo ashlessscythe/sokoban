@@ -120,30 +120,35 @@ function cancelInputClearTimer() {
   }
 }
 
-function showSpinner() {
-  document.getElementById('spinner').style.display = 'block';
+window.addEventListener('pageshow', () => {
+  // just to make sure the loader is hidden when the page is shown
+  hideLoader();
+});
+
+function showLoader() {
+  let loader = document.getElementById('loader-container')
+  if (loader) {
+    loader.style.display = 'flex';
+  }
 }
 
-function hideSpinner() {
-  document.getElementById('spinner').style.display = 'none';
-}
-
-function navigateWithSpinner(url) {
-  // Show the spinner
-  document.getElementById('spinner').style.display = 'block';
-
-  // Redirect after a short delay to allow the spinner to show
-  setTimeout(() => {
-    location.href = url;
-  }, 100); // 100ms for example, adjust as necessary
+function hideLoader() {
+  let loader = document.getElementById('loader-container')
+  if (loader) {
+    loader.style.display = 'none';
+  }
 }
 
 function navigateWithLoadingDots(url) {
   // Show the loader container
-  document.getElementById('loader-container').style.display = 'flex';
+  let loader = document.getElementById('loader-container');
+  if (loader) {
+    loader.style.display = 'flex';
+  }
 
   // Redirect after a short delay to allow the loader to show
   setTimeout(() => {
     window.location.href = url;
   }, 100); // Short delay
 }
+
