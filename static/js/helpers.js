@@ -119,3 +119,31 @@ function cancelInputClearTimer() {
     });
   }
 }
+
+function showSpinner() {
+  document.getElementById('spinner').style.display = 'block';
+}
+
+function hideSpinner() {
+  document.getElementById('spinner').style.display = 'none';
+}
+
+function navigateWithSpinner(url) {
+  // Show the spinner
+  document.getElementById('spinner').style.display = 'block';
+
+  // Redirect after a short delay to allow the spinner to show
+  setTimeout(() => {
+    location.href = url;
+  }, 100); // 100ms for example, adjust as necessary
+}
+
+function navigateWithLoadingDots(url) {
+  // Show the loader container
+  document.getElementById('loader-container').style.display = 'flex';
+
+  // Redirect after a short delay to allow the loader to show
+  setTimeout(() => {
+    window.location.href = url;
+  }, 100); // Short delay
+}

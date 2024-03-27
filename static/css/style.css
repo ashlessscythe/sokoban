@@ -71,3 +71,38 @@ h1 {
 .block-button:hover {
   background-color: #85d8ce; /* Example hover background color */
 }
+
+/* Box Loader Container */
+#loader-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 60vw; /* 60% of the viewport width */
+  height: 30vw; /* 60% of the viewport width, adjust height as needed */
+  transform: translate(-50%, -50%); /* Center the square */
+  background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it's on top */
+  border-radius: 10px; /* Rounded corners */
+  font-size: 40px;
+  color: white;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box; /* Makes sure that padding and border are included in the width and height */
+}
+
+/* Loading Dots */
+.loading-dots::after {
+  content: '...';
+  font-size: 40px;
+  animation: loadingDots 1.5s infinite;
+  letter-spacing: 15px;
+}
+
+@keyframes loadingDots {
+  0% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+}
+

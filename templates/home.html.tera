@@ -7,6 +7,10 @@
     <script src="../static/js/helpers.js"></script>
 </head>
 <body>
+<!-- Loader Container, initially hidden -->
+<div id="loader-container" style="display: none;">
+  <div class="loading-dots">Loading</div>
+</div>
 <div id="app-container">
     <div class="logo-container">
         <img src="../static/images/company_logo.jpg" alt="Company Logo">
@@ -20,17 +24,17 @@
         </form>
         <div id="statusMessage"></div> <!-- Placeholder for the message -->
         <div class="button-container">
-            <ul class="horizontal-buttons">
-                <li>
-                    <button class="block-button" onclick="location.href='/status/status_list'">List</button>
-                </li>
-                <li>
-                    <button class="block-button" onclick="location.href='/status/status_in'">Status In</button>
-                </li>
-                <li>
-                    <button class="block-button" onclick="location.href='/register'">Register</button>
-                </li>
-            </ul>
+          <ul class="horizontal-buttons">
+              <li>
+                  <button class="block-button" onclick="navigateWithLoadingDots('/status/status_list')">List</button>
+              </li>
+              <li>
+                  <button class="block-button" onclick="navigateWithLoadingDots('/status/status_in')">Status In</button>
+              </li>
+              <li>
+                  <button class="block-button" onclick="navigateWithLoadingDots('/register')">Register</button>
+              </li>
+          </ul>
         </div>
     </div>
 </div>
@@ -140,8 +144,6 @@
 </body>
 
     <!-- More forms or buttons to interact with other API endpoints -->
-
-</body>
 </html>
 
 <style>

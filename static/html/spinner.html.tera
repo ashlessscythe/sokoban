@@ -1,0 +1,48 @@
+<!-- Spinner Container -->
+<!DOCTYPE html>
+<html lang="en">
+<div id="spinner" style="display: none;">
+  <div class="loader"></div>
+</div>
+</html>
+
+
+<script>
+function showSpinner() {
+  document.getElementById('spinner').style.display = 'block';
+}
+
+function hideSpinner() {
+  document.getElementById('spinner').style.display = 'none';
+}
+
+// Example usage with an AJAX request:
+showSpinner();
+fetch('/your-endpoint-that-runs-query')
+  .then(response => response.json())
+  .then(data => {
+    // Process your data
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  })
+  .finally(() => {
+    hideSpinner(); // Hide the spinner regardless of the outcome
+  });
+  </script>
+
+
+/* Spinner Styles */
+.loader {
+  border: 16px solid #f3f3f3; /* Light grey */
+  border-top: 16px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
