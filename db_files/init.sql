@@ -46,6 +46,15 @@ INSERT INTO departments (name)
 SELECT 'Default'
 WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Default');
 
+-- Checklist Status Table
+CREATE TABLE IF NOT EXISTS checklist_status (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(36) REFERENCES users(user_id),
+  drill_id INTEGER, -- If you need to track multiple drills
+  found BOOLEAN DEFAULT FALSE,
+  check_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- add relations bossId relates to user_id in users table
 -- Check if the foreign key does not exist before adding it.
 DO $$ BEGIN
@@ -83,3 +92,5 @@ FROM
   punches p
 JOIN
   users u ON p.user_id = u.user_id;
+
+

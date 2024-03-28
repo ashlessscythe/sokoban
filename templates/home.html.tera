@@ -29,7 +29,7 @@
                     <button class="block-button" onclick="navigateWithLoadingDots('/status/status_list')">List</button>
                 </li>
                 <li>
-                    <button class="block-button" onclick="navigateWithLoadingDots('/status/status_in')">Status In</button>
+                    <button class="block-button" onclick="navigateWithLoadingDots('/status/checklist')">Checklist</button>
                 </li>
                 <li>
                     <button class="block-button" onclick="navigateWithLoadingDots('/register')">Register</button>

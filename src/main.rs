@@ -24,6 +24,7 @@ use sqlx::{FromRow, PgPool, Row};
 use std::{collections::HashMap, string::ToString};
 
 use uuid::Uuid;
+mod func;
 
 #[derive(FromForm)]
 struct LoginForm {
@@ -233,8 +234,8 @@ async fn status_list(
 }
 
 // only in status
-#[get("/status_in")]
-async fn status_in(
+#[get("/checklist")]
+async fn checklist(
     _b_auth: Option<Authenticated>,
     state: &State<MyState>,
 ) -> Result<Template, Status> {
@@ -258,7 +259,7 @@ async fn status_in(
 async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Template, Status> {
     // appropriate template
     let template_name = if filter_in {
-        "status_in"
+        "checklist"
     } else {
         "status_list"
     };
@@ -267,6 +268,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
     let sql_query = if filter_in {
         r#"
         SELECT
+            u.user_id,
             u.name,
             latest_punch.in_out,
             latest_punch.last_punch_time,
@@ -304,6 +306,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
     } else {
         r#"
         SELECT
+            u.user_id,
             u.name,
             p.in_out,
             p.punch_time as last_punch_time,
@@ -345,6 +348,8 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
 
     println!("user_statuses: {:?}", user_statuses);
 
+    // temp id
+
     let formatted_user_statuses: Vec<_> = user_statuses
         .into_iter()
         .map(|status| {
@@ -356,6 +361,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
 
             // Return the status with the formatted time
             UserStatusDisplay {
+                temp_id: func::generate_temp_id(&status.user_id, Utc::today()),
                 name: status.name,
                 in_out: status.in_out,
                 last_punch_time: formatted_time, // This will now be a String
@@ -368,6 +374,15 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
     println!("template_name: {:?}", template_name);
     Ok(Template::render(template_name, context))
 }
+
+// update checklist status
+// #[post("/update-found-status", format = "json", data = "<found_status>")]
+// async fn update_found_status(
+//     found_status: Json<FoundStatusUpdate>,
+// ) -> Result<status::Accepted<String>, status::BadRequest<String>> {
+//     // Update the database with the found status for the user
+//     // ...
+// }
 
 // list of all users
 #[get("/users")]
@@ -580,7 +595,7 @@ async fn main() -> Result<(), rocket::Error> {
         .mount("/user", routes![retrieve, add, add_bulk])
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
-        .mount("/status", routes![status_list, status_in])
+        .mount("/status", routes![status_list, checklist])
         .mount("/static", FileServer::from(static_files_dir))
         // .mount("/id", routes![id_list])
         .mount(
@@ -639,6 +654,7 @@ struct UserId {
 // TODO: add Option<dept_id> to UserStatus
 #[derive(sqlx::FromRow, Debug)]
 struct UserStatus {
+    user_id: String,
     name: String,
     in_out: InOut,
     last_punch_time: NaiveDateTime,
@@ -646,8 +662,16 @@ struct UserStatus {
 }
 #[derive(sqlx::FromRow, Serialize)]
 struct UserStatusDisplay {
+    temp_id: String,
     name: String,
     in_out: InOut,
     last_punch_time: String, // Now it's a String to hold the formatted date
     dept_name: String,
+}
+
+#[derive(Deserialize, Serialize)]
+struct FoundStatusUpdate {
+    user_id: String,
+    drill_id: i32,
+    found: bool,
 }

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Users In</title>
+    <title>Checklist</title>
     <link rel="stylesheet" href="../static/css/style.css" />
     <script src="../static/js/helpers.js"></script>
   </head>
@@ -29,12 +29,13 @@
           style="width: 100%; height: auto"
         />
       </button>
-      <h1>Users with 'In' Status</h1>
+      <h1>Checklist</h1>
     </div>
     <div
       class="table-container"
-      style="height: 60vh; min-height: 200px; overflow: auto"
+      style="position: relative; height: 60vh; min-height: 200px; overflow: auto"
     >
+      <button class="refresh-button" onclick="location.reload()">Refresh</button>
       <table>
         <thead>
           <tr>
@@ -42,6 +43,10 @@
             <th>Status</th>
             <th>Department</th>
             <th>Last Punch Time</th>
+            <th>
+              Found
+                <div style="font-size: smaller; color: gray;">(not working yet)</div>
+            </th>
           </tr>
         </thead>
         <tbody id="table-body">
@@ -51,6 +56,9 @@
             <td>{{ user_status.in_out }}</td>
             <td>{{ user_status.dept_name }}</td>
             <td class="iso-date">{{ user_status.last_punch_time }}</td>
+            <td>
+              <input type="checkbox" name="found_status[{{ user_status.name }}]" value="found">
+            </td>
           </tr>
           {% endfor %}
           <div
@@ -61,6 +69,9 @@
           </div>
         </tbody>
       </table>
+    </div>
+    <div class="update-button-contaner">
+      <button class="centered-button" type="submit">Update Status</button>
     </div>
     <button
       class="block-button"
@@ -97,6 +108,21 @@
     } else {
       scrollArrow.style.display = "none";
     }
+  }
+  // Example function to handle checkbox change
+  function handleFoundCheckbox(userId, isChecked) {
+    // Send the found status to the server
+    fetch('/update-found-status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId, found: isChecked }),
+    }).then(response => {
+      // handle the response
+    }).catch(error => {
+      // handle any errors
+    });
   }
 </script>
 
@@ -163,6 +189,41 @@
     height: auto;
     display: block;
   }
+
+  .update-button-contaner {
+    text-align: center;
+    items-align: center;
+  }
+
+  .centered-button {
+    display: block;
+    margin: 20px auto;
+    font-size: 20px;
+    width: auto;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #a7c7e7; /* Example background color */
+    border: none; /* Example border removal */
+    cursor: pointer; /* Changes the cursor on hover */
+    transition: background-color 0.3s; /* Smooth background color transition on hover */
+  }
+  
+  .refresh-button {
+    display: block;
+    margin: 20px auto;
+    font-size: 20px;
+    width: auto;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #a7c7e7; /* Example background color */
+    border: none; /* Example border removal */
+    cursor: pointer; /* Changes the cursor on hover */
+    transition: background-color 0.3s; /* Smooth background color transition on hover */
+      }
+}
+
 
   /* This is a class to format the date, we'll add it in the <td> tag */
   .iso-date {

@@ -1,7 +1,16 @@
-use rocket::request::{self, FromRequest, Request};
+use chrono::{Date, Utc};
 use rocket::outcome::Outcome;
+use rocket::request::{self, FromRequest, Request};
+use sha2::{Digest, Sha256};
 
 pub struct ExtractedUserId(String);
+
+pub fn generate_temp_id(user_id: &str, date: Date<Utc>) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(user_id);
+    hasher.update(date.format("%Y-%m-%d").to_string());
+    format!("{:x}", hasher.finalize())
+}
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for ExtractedUserId {
@@ -25,13 +34,7 @@ impl UserIdExtractor {
     }
 
     pub fn extract_user_id(&self) -> String {
-        let patterns = vec![
-            ("100", 9),
-            ("21", 8),
-            ("20", 8),
-            ("104", 9),
-            ("600", 9),
-        ];
+        let patterns = vec![("100", 9), ("21", 8), ("20", 8), ("104", 9), ("600", 9)];
 
         for (prefix, length) in patterns {
             if let Some(start_index) = self.scanned_id.find(prefix) {
@@ -46,5 +49,4 @@ impl UserIdExtractor {
         );
         self.scanned_id.to_string()
     }
-
 }
