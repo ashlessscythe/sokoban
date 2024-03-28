@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # define url
-URL="http://localhost:8000"
-# URL="https://smart-tandy-ashless.koyeb.app"
+# URL="http://localhost:8000"
+URL="https://smart-tandy-ashless.koyeb.app"
 
 # if no args provided print usage
 if [ $# -eq 0 ]; then
@@ -25,6 +25,9 @@ for ((c = 1; c <= $COUNT; c++)); do
 	# generate random 4 char string
 	NAME=$(cat /dev/urandom | tr -dc 'a-zA-Z' | fold -w 4 | head -n 1)
 
+	# generate a random number from 1 to 4
+	DEPT=$(shuf -i 1-4 -n 1)	
+
 	# use name as email @local.eml
 	EMAIL=$NAME"@local.eml"
 
@@ -32,7 +35,7 @@ for ((c = 1; c <= $COUNT; c++)); do
 	ID=$NAME"_s_id"
 
 	echo "Sending $TYPE request to $URL/$ENDPOINT with name: $NAME, email: $EMAIL, user_id: $ID"
-	curl -X $TYPE $URL/$ENDPOINT -d '{"name": "'$NAME'", "email": "'$EMAIL'", "user_id":"'$ID'"}'
+	curl -X $TYPE $URL/$ENDPOINT -d '{"name": "'$NAME'", "email": "'$EMAIL'", "dept_id":'$DEPT', "user_id":"'$ID'"}'
 	# send random either In or Out
 	INOUT=$(shuf -n 1 -e In Out)
 	curl -X $TYPE $URL/punch/$ID -d '{"in_out":"'$INOUT'"}'
