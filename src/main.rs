@@ -233,29 +233,9 @@ async fn status_list(
     }
 }
 
-// only in status
-#[get("/checklist")]
-async fn checklist(
-    _b_auth: Option<Authenticated>,
-    state: &State<MyState>,
-) -> Result<Template, Status> {
-    match _b_auth {
-        Some(_) => {
-            // User is authenticated
-            println!("getting template for in status");
-            user_statuses(state, true).await
-        }
-        None => {
-            // User is not authenticated, provide a message and render the login form.
-            let mut ctx = HashMap::new();
-            ctx.insert("message", "You are not authenticated.");
-            Ok(Template::render("loginform", &ctx)) // Ensure you return `Ok` here.
-        }
-    }
-}
+
 
 // get users that are currently in
-
 async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Template, Status> {
     // appropriate template
     let template_name = if filter_in {
@@ -361,7 +341,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
 
             // Return the status with the formatted time
             UserStatusDisplay {
-                temp_id: func::generate_temp_id(&status.user_id, Utc::today()),
+                temp_id: func::generate_temp_id(&status.user_id, Some(func::get_drill_id(None))),
                 name: status.name,
                 in_out: status.in_out,
                 last_punch_time: formatted_time, // This will now be a String
@@ -375,14 +355,61 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
     Ok(Template::render(template_name, context))
 }
 
+// only in status
+#[get("/checklist")]
+async fn checklist(
+    _b_auth: Option<Authenticated>,
+    state: &State<MyState>,
+) -> Result<Template, Status> {
+    match _b_auth {
+        Some(_) => {
+            // User is authenticated
+            println!("getting template for in status");
+            user_statuses(state, true).await
+        }
+        None => {
+            // User is not authenticated, provide a message and render the login form.
+            let mut ctx = HashMap::new();
+            ctx.insert("message", "You are not authenticated.");
+            Ok(Template::render("loginform", &ctx)) // Ensure you return `Ok` here.
+        }
+    }
+}
+
 // update checklist status
-// #[post("/update-found-status", format = "json", data = "<found_status>")]
-// async fn update_found_status(
-//     found_status: Json<FoundStatusUpdate>,
-// ) -> Result<status::Accepted<String>, status::BadRequest<String>> {
-//     // Update the database with the found status for the user
-//     // ...
-// }
+#[post("/update-found-status", format = "json", data = "<found_status>")]
+async fn update_found_status(
+    state: &State<MyState>,
+    found_status: Json<FoundStatusUpdate>,
+) -> Result<Json<FoundStatusUpdate>, Status> {
+
+    // print drill_id
+    let default_drill_id = Some(func::get_drill_id(None));
+    println!("default_drill_id: {:?}", default_drill_id);
+
+    let result = sqlx::query(
+        r#"
+        UPDATE checklist_status
+        SET status = $3, drill_id = $2
+        WHERE user_id = $2
+        "#,
+    )
+    .bind(&found_status.user_id)
+    .bind(default_drill_id)
+    .bind(&found_status.found)
+    .execute(&state.pool)
+    .await;
+    // print query
+    println!("query: {:?}", result);
+
+    match result {
+        Ok(_) => Ok(Json(found_status.into_inner())),
+        Err(_) => {
+            println!("Failed to update the status: {:?}", result);
+            Err(Status::BadRequest)
+        },
+    }
+}
 
 // list of all users
 #[get("/users")]
@@ -452,15 +479,14 @@ async fn add_bulk(
 #[post("/", data = "<data>")]
 async fn add(data: Json<User>, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
     // generate if user_id not provided
-    let user_id = match &data.user_id {
-        Some(id) => id.to_string(),
-        None => Uuid::new_v4().to_string(),
-    };
+    let user_id = data.user_id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
+
     let user =
-        sqlx::query_as("INSERT INTO users (name, email, user_id) VALUES ($1, $2, $3) RETURNING *")
+        sqlx::query_as::<_, User>("INSERT INTO users (name, email, user_id, dept_id) VALUES ($1, $2, $3, $4) RETURNING *")
             .bind(&data.name)
             .bind(&data.email)
             .bind(user_id.to_string())
+            .bind(&data.dept_id)
             .fetch_one(&state.pool)
             .await
             .map_err(|e| BadRequest(e.to_string()))?;
@@ -595,7 +621,7 @@ async fn main() -> Result<(), rocket::Error> {
         .mount("/user", routes![retrieve, add, add_bulk])
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
-        .mount("/status", routes![status_list, checklist])
+        .mount("/status", routes![status_list, checklist, update_found_status])
         .mount("/static", FileServer::from(static_files_dir))
         // .mount("/id", routes![id_list])
         .mount(
@@ -672,6 +698,6 @@ struct UserStatusDisplay {
 #[derive(Deserialize, Serialize)]
 struct FoundStatusUpdate {
     user_id: String,
-    drill_id: i32,
+    drill_id: Option<i64>,
     found: bool,
 }

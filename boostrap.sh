@@ -101,5 +101,11 @@ if ! grep -q "EDITOR=nvim" "$HOME/.bashrc"; then
 	echo 'export EDITOR=nvim' >>"$HOME/.bashrc"
 fi
 
+# export db url
+DB_URL="postgres://postgres:dbpass@localhost:5432/soko-db"
+if ! grep -q "export DATABASE_URL=$DB_URL" "$HOME/.bashrc"; then
+	echo "export DATABASE_URL=$DB_URL" >> "$HOME/.bashrc"
+fi
+
 # Reload .bashrc to apply changes immediately
 source "$HOME/.bashrc"

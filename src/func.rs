@@ -5,10 +5,23 @@ use sha2::{Digest, Sha256};
 
 pub struct ExtractedUserId(String);
 
-pub fn generate_temp_id(user_id: &str, date: Date<Utc>) -> String {
+pub fn get_drill_id(drill_id: Option<i64>) -> i64 {
+    match drill_id {
+        Some(id) => id,
+        None => {
+            let today = Utc::now().format("%Y%m%d").to_string();
+            today.parse::<i64>().unwrap_or_default()
+        }
+    }
+}
+        
+
+pub fn generate_temp_id(user_id: &str, drill_id: Option<i64>) -> String {
     let mut hasher = Sha256::new();
     hasher.update(user_id);
-    hasher.update(date.format("%Y-%m-%d").to_string());
+    if let Some(id) = drill_id {
+        hasher.update(id.to_string());
+    }
     format!("{:x}", hasher.finalize())
 }
 

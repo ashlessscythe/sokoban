@@ -30,12 +30,19 @@
         />
       </button>
       <h1>Checklist</h1>
+      <button class="refresh-button" onclick="location.reload()">
+        Refresh List
+      </button>
     </div>
     <div
       class="table-container"
-      style="position: relative; height: 60vh; min-height: 200px; overflow: auto"
+      style="
+        position: relative;
+        height: 60vh;
+        min-height: 200px;
+        overflow: auto;
+      "
     >
-      <button class="refresh-button" onclick="location.reload()">Refresh</button>
       <table>
         <thead>
           <tr>
@@ -45,7 +52,9 @@
             <th>Last Punch Time</th>
             <th>
               Found
-                <div style="font-size: smaller; color: gray;">(not working yet)</div>
+              <div style="font-size: smaller; color: gray">
+                (not working yet)
+              </div>
             </th>
           </tr>
         </thead>
@@ -57,7 +66,13 @@
             <td>{{ user_status.dept_name }}</td>
             <td class="iso-date">{{ user_status.last_punch_time }}</td>
             <td>
-              <input type="checkbox" name="found_status[{{ user_status.name }}]" value="found">
+              <input
+                type="checkbox"
+                name="found_status"
+                value="found"
+                data-user-id="{{ user_status.temp_id }}"
+                class="status-checkbox"
+              />
             </td>
           </tr>
           {% endfor %}
@@ -71,7 +86,9 @@
       </table>
     </div>
     <div class="update-button-contaner">
-      <button class="centered-button" type="submit">Update Status</button>
+      <button class="centered-button" type="button" onclick="sendUpdates()">
+        Push Update
+      </button>
     </div>
     <button
       class="block-button"
@@ -89,6 +106,52 @@
   console.log(
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
+
+  // iterate and add event listener to each checkbox
+  async function sendUpdates() {
+    const checkboxes = document.querySelectorAll(".status-checkbox");
+    checkboxes.forEach(async (checkbox) => {
+      const userId = checkbox.dataset.userId;
+      const status = checkbox.checked; // true if checked, false if not
+      await sendUpdate(userId, status);
+    });
+  }
+
+  // send update to server
+  async function sendUpdate(userId, status) {
+    const url = "/status/update-found-status";
+    const drillId = new Date().toISOString().replace(/-/g, "").substring(0, 8); // Default drill ID in yyyymmdd format
+    console.log("url is", url);
+    console.log(
+      "Updating status for user",
+      userId,
+      "to",
+      status,
+      "for drill",
+      drillId
+    );
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          drill_id: parseInt(drillId, 10),
+          found: status,
+        }),
+      });
+
+      if (response.ok) {
+        console.log("Status updated successfully");
+      } else {
+        console.error("Error updating status:", response.status);
+      }
+    } catch (error) {
+      console.error("Network error:", error);
+    }
+  }
 
   // Function to control the number of rows
   function setNumberOfRows(numRows) {
@@ -112,17 +175,19 @@
   // Example function to handle checkbox change
   function handleFoundCheckbox(userId, isChecked) {
     // Send the found status to the server
-    fetch('/update-found-status', {
-      method: 'POST',
+    fetch("/update-found-status", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ userId, found: isChecked }),
-    }).then(response => {
-      // handle the response
-    }).catch(error => {
-      // handle any errors
-    });
+    })
+      .then((response) => {
+        // handle the response
+      })
+      .catch((error) => {
+        // handle any errors
+      });
   }
 </script>
 
@@ -208,7 +273,7 @@
     cursor: pointer; /* Changes the cursor on hover */
     transition: background-color 0.3s; /* Smooth background color transition on hover */
   }
-  
+
   .refresh-button {
     display: block;
     margin: 20px auto;
@@ -221,9 +286,7 @@
     border: none; /* Example border removal */
     cursor: pointer; /* Changes the cursor on hover */
     transition: background-color 0.3s; /* Smooth background color transition on hover */
-      }
-}
-
+  }
 
   /* This is a class to format the date, we'll add it in the <td> tag */
   .iso-date {
