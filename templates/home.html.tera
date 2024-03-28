@@ -1,207 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Home</title>
-    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="../static/css/style.css" />
     <script src="../static/js/helpers.js"></script>
-</head>
-<body>
-  <!-- Loader Container, initially hidden -->
-  <div id="loader-container" style="display: none;">
-    <div class="loading-dots">Loading</div>
-  </div>
-  <div id="app-container">
+  </head>
+  <body>
+    <!-- Loader Container, initially hidden -->
+    <div id="loader-container" style="display: none">
+      <div class="loading-dots">Loading</div>
+    </div>
+    <div id="app-container">
       <div class="logo-container">
-          <img src="../static/images/company_logo.jpg" alt="Company Logo">
+        <img src="../static/images/company_logo.jpg" alt="Company Logo" />
       </div>
       <div class="user-details-container">
-          <form id="punchForm" class="form-container">
-              <h2>Scan your badge</h2>
-              <label for="userIdInput">Scan</label>
-              <input class="user-input" type="password" id="userIdInput" name="user_id" placeholder="Enter User ID" required autofocus>
-              <button class="big-button" type="submit">Scan</button>
-          </form>
-          <div id="statusMessage"></div> <!-- Placeholder for the message -->
-          <div class="button-container">
-            <ul class="horizontal-buttons">
-                <li>
-                    <button class="block-button" onclick="navigateWithLoadingDots('/status/status_list')">List</button>
-                </li>
-                <li>
-                    <button class="block-button" onclick="navigateWithLoadingDots('/status/checklist')">Checklist</button>
-                </li>
-                <li>
-                    <button class="block-button" onclick="navigateWithLoadingDots('/register')">Register</button>
-                </li>
-            </ul>
-          </div>
+        <form id="punchForm" class="form-container">
+          <h2>Scan your badge</h2>
+          <label for="userIdInput">Scan</label>
+          <input
+            class="user-input"
+            type="password"
+            id="userIdInput"
+            name="user_id"
+            placeholder="Enter User ID"
+            required
+            autofocus
+          />
+          <button class="big-button" type="submit">Scan</button>
+        </form>
+        <div id="statusMessage"></div>
+        <!-- Placeholder for the message -->
+        <div class="button-container">
+          <ul class="horizontal-buttons">
+            <li>
+              <button
+                class="block-button"
+                onclick="navigateWithLoadingDots('/status/status_list')"
+              >
+                List
+              </button>
+            </li>
+            <li>
+              <button
+                class="block-button"
+                onclick="navigateWithLoadingDots('/status/checklist')"
+              >
+                Checklist<br />(InProgress)
+              </button>
+            </li>
+            <li>
+              <button
+                class="block-button"
+                onclick="navigateWithLoadingDots('/register')"
+              >
+                Register
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
-  </div>
+    </div>
 
-  <script>
+    <script>
       // import fn to clear input
-      setInputClearTimer('#userIdInput', 3000);
-      document.getElementById('punchForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const userInput = document.getElementById('userIdInput')
-        const userId = extractUserId(userInput.value);
-        const messageDiv = document.getElementById('statusMessage'); // Ensure you have this element in your HTML
+      setInputClearTimer("#userIdInput", 3000);
+      document
+        .getElementById("punchForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+          const userInput = document.getElementById("userIdInput");
+          const userId = extractUserId(userInput.value);
+          const messageDiv = document.getElementById("statusMessage"); // Ensure you have this element in your HTML
 
-        try {
+          try {
             // First fetch: get user name
-            const userResponse = await fetch(`/user/${encodeURIComponent(userId)}`);
-            
+            const userResponse = await fetch(
+              `/user/${encodeURIComponent(userId)}`
+            );
+
             // Handle 400 Bad Request response
             if (userResponse.status === 400) {
-                messageDiv.textContent = "User not found.";
-                userInput.value = '';
-                return;
+              messageDiv.textContent = "User not found.";
+              userInput.value = "";
+              return;
             }
-            
+
             // Handle other non-ok responses
             if (!userResponse.ok) {
-                userInput.value = '';
-            messageDiv.textContent = `Error fetching user details: ${userResponse.statusText}`;
-                return;
+              userInput.value = "";
+              messageDiv.textContent = `Error fetching user details: ${userResponse.statusText}`;
+              return;
             }
 
             const userData = await userResponse.json();
             const userName = userData.name; // Make sure the JSON structure includes 'name'
 
             // Second fetch: get punch status
-            const punchResponse = await fetch(`/punch/${encodeURIComponent(userId)}/last_punch`);
-            
+            const punchResponse = await fetch(
+              `/punch/${encodeURIComponent(userId)}/last_punch`
+            );
+
             if (!punchResponse.ok) {
-                messageDiv.textContent = "Error fetching punch details: " + punchResponse.statusText;
-                return;
+              messageDiv.textContent =
+                "Error fetching punch details: " + punchResponse.statusText;
+              return;
             }
 
             const punchData = await punchResponse.json();
             const userStatus = punchData.in_out; // Make sure the JSON structure includes 'in_out'
-            
+
             // cancel timer so we don't clear input
             cancelInputClearTimer();
-            
+
             // Update the page with the combined message
             messageDiv.innerHTML = `
               <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
               <h2>
                   Hello, ${userName}.<br>
-                  Your current status is ${userStatus || 'No status'}.
+                  Your current status is ${userStatus || "No status"}.
               </h2>
               <button class="block-button" onclick="updateStatus('In')">CHECK IN</button>
               <button class="block-button" onclick="updateStatus('Out')">CHECK OUT</button>
               <button class="block-button" onclick="location.href='/home'">HomePage</button>
               `;
             // Hide the form
-            document.getElementById('punchForm').style.display = 'none';
-
-        } catch (error) {
+            document.getElementById("punchForm").style.display = "none";
+          } catch (error) {
             // Handle network errors
-            console.error('Fetch error:', error);
+            console.error("Fetch error:", error);
             messageDiv.textContent = "Network error: Please try again later.";
-        }
-    });
+          }
+        });
 
-    async function updateStatus(status) {
-        const inputField = document.getElementById('userIdInput');
+      async function updateStatus(status) {
+        const inputField = document.getElementById("userIdInput");
         const userId = extractUserId(inputField.value); // Get the user ID from the input
         let punchUrl = `/punch/${encodeURIComponent(userId)}`;
-        const messageDiv = document.getElementById('statusMessage'); // Assuming this is where you want to show the message
+        const messageDiv = document.getElementById("statusMessage"); // Assuming this is where you want to show the message
 
         try {
-            const punchResponse = await fetch(punchUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ in_out: status })
-            });
+          const punchResponse = await fetch(punchUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ in_out: status }),
+          });
 
-            if (punchResponse.ok) {
-                // Show confirmation message
-                messageDiv.innerHTML = `<p>Status updated to ${status}. Reloading...</p>`;
+          if (punchResponse.ok) {
+            // Show confirmation message
+            messageDiv.innerHTML = `<p>Status updated to ${status}. Reloading...</p>`;
 
-                // Wait for a few seconds (e.g., 3 seconds) and then reload the page
-                setTimeout(() => {
-                    window.location.reload();
-                }, 3000); // 3000 milliseconds = 3 seconds
-            } else {
-                // Handle non-OK response
-                messageDiv.innerHTML = `<p>Failed to update status. Please try again.</p>`;
-            }
+            // Wait for a few seconds (e.g., 3 seconds) and then reload the page
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000); // 3000 milliseconds = 3 seconds
+          } else {
+            // Handle non-OK response
+            messageDiv.innerHTML = `<p>Failed to update status. Please try again.</p>`;
+          }
         } catch (error) {
-            // Handle network errors
-            console.error('Fetch error:', error);
-            messageDiv.innerHTML = `<p>Network error: Please try again later.</p>`;
+          // Handle network errors
+          console.error("Fetch error:", error);
+          messageDiv.innerHTML = `<p>Network error: Please try again later.</p>`;
         }
-    }
+      }
+    </script>
+  </body>
 
-
-  </script>
-
-</body>
-
-    <!-- More forms or buttons to interact with other API endpoints -->
+  <!-- More forms or buttons to interact with other API endpoints -->
 </html>
 
 <style>
-    .form-container {
-        display: flex;
-        flex-direction: column;
-        width: 300px; /* Adjust the width as needed */
-    }
-    .form-container label,
-    .form-container input,
-    .form-container button {
-        margin-bottom: 10px; /* Space between form elements */
-    }
+  .form-container {
+    display: flex;
+    flex-direction: column;
+    width: 300px; /* Adjust the width as needed */
+  }
+  .form-container label,
+  .form-container input,
+  .form-container button {
+    margin-bottom: 10px; /* Space between form elements */
+  }
 
-    .img-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        overflow: hidden;
-    }
+  .img-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+  }
 
-    .img-container img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain; /* Ensures aspect ratio is maintained */
-    }
+  .img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Ensures aspect ratio is maintained */
+  }
 
-    .button-container {
-        width: 100%;
-        text-align: center;
-    }
+  .button-container {
+    width: 100%;
+    text-align: center;
+  }
 
-    ul.horizontal-buttons {
-        list-style-type: none; /* Removes bullet points */
-        padding: 0; /* Removes default padding */
-        display: flex;
-        justify-content: center; /* Aligns the buttons to the center */
-        gap: 10px; /* Optional: adds some space between the buttons */
-    }
+  ul.horizontal-buttons {
+    list-style-type: none; /* Removes bullet points */
+    padding: 0; /* Removes default padding */
+    display: flex;
+    justify-content: center; /* Aligns the buttons to the center */
+    gap: 10px; /* Optional: adds some space between the buttons */
+  }
 
-    li.horizontal-buttons {
-        display: inline-block; /* Align items horizontally */
-        margin-right: 10px; /* Optional: adds some space between the buttons */
-    }
+  li.horizontal-buttons {
+    display: inline-block; /* Align items horizontally */
+    margin-right: 10px; /* Optional: adds some space between the buttons */
+  }
 
-    .logo-container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        padding: 10px;
-    }
+  .logo-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 10px;
+  }
 
-    .logo-container img {
-        width: 150px; /* Adjust the width as needed */
-        height: auto;
-    }
+  .logo-container img {
+    width: 150px; /* Adjust the width as needed */
+    height: auto;
+  }
 </style>
-
