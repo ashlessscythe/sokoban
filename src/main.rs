@@ -473,19 +473,18 @@ async fn update_found_status(
     println!("drill_id: {:?}", found_status.drill_id.unwrap_or(func::get_drill_id(None)));
     println!("found: {:?}", found_status.found);
 
-    let result = sqlx::query!(
-        "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, $3)
-        ON CONFLICT (user_id, drill_id) DO UPDATE SET found = $3",
-        original_user_id,
-        found_status.drill_id.unwrap_or_else(|| func::get_drill_id(None)),
-        found_status.found
-    )
-    .execute(&state.pool) // Use `execute` here
-    .await
-    .map_err(|e| {
-        eprintln!("SQL Error: {:?}", e);
-        Status::InternalServerError
-    })?;
+    let result = sqlx::query(
+            "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, drill_id) DO UPDATE SET found = $3")
+        .bind(original_user_id)
+        .bind(found_status.drill_id.unwrap_or_else(|| func::get_drill_id(None)))
+        .bind(found_status.found)
+        .execute(&state.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("SQL Error: {:?}", e);
+            Status::InternalServerError
+        })?;
 
     println!("Number of rows inserted or updated: {:?}", result.rows_affected());
 
