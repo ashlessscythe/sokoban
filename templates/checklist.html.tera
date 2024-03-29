@@ -47,9 +47,7 @@
         <thead>
           <tr>
             <th>Name</th>
-            <th>Status</th>
             <th>Department</th>
-            <th>Last Punch Time</th>
             <th>
               Found
               <div style="font-size: smaller; color: gray">
@@ -62,9 +60,7 @@
           {% for user_status in user_statuses %}
           <tr>
             <td>{{ user_status.name }}</td>
-            <td>{{ user_status.in_out }}</td>
             <td>{{ user_status.dept_name }}</td>
-            <td class="iso-date">{{ user_status.last_punch_time }}</td>
             <td>
               <input
                 type="checkbox"
@@ -73,6 +69,7 @@
                 data-user-id="{{ user_status.temp_id }}"
                 data-user-name="{{ user_status.name }}"
                 class="status-checkbox"
+                {% if user_status.found %}checked{% endif %}
               />
             </td>
           </tr>

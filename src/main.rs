@@ -299,6 +299,8 @@ async fn get_status_list(state: &State<MyState>) -> Result<Template, Status> {
                 in_out: status.in_out,
                 last_punch_time: formatted_time, // This will now be a String
                 dept_name: status.dept_name,
+                drill_id: None,
+                found: None,
             }
         })
         .collect();
@@ -333,89 +335,100 @@ async fn checklist(
 
 // get users that are currently in
 async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
-    // appropriate template
     let template_name = "checklist";
+    let current_drill_id = func::get_drill_id(None);
+    println!("current_drill_id: {:?}", current_drill_id);
 
-    println!("template_name: {:?}", template_name);
-    // appropriate query
-    let sql_query = 
-        r#"
-        SELECT
-            u.user_id,
-            u.name,
-            latest_punch.in_out,
-            latest_punch.last_punch_time,
-            COALESCE(d.name, 'No Department') as dept_name
-        FROM
-            users u
-        LEFT JOIN
-            departments d ON u.dept_id = d.id
-        INNER JOIN
-            (
-                SELECT
-                    p.user_id,
-                    p.in_out,
-                    p.punch_time as last_punch_time
-                FROM
-                    punches p
-                INNER JOIN
-                    (
-                        SELECT
-                            user_id,
-                            MAX(punch_time) as max_punch_time
-                        FROM
-                            punches
-                        WHERE
-                            punch_time >= NOW() - INTERVAL '24 HOURS'
-                        GROUP BY
-                            user_id
-                    ) as max_punch ON p.user_id = max_punch.user_id AND p.punch_time = max_punch.max_punch_time
-                WHERE
-                    p.in_out = 'in'
-            ) as latest_punch ON u.user_id = latest_punch.user_id
-        ORDER BY
-            u.name, latest_punch.last_punch_time DESC;
-        "#;
-
-    let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<Postgres, UserStatus>(sql_query)
-        .fetch_all(&state.pool)
-        .await
-        .map_err(|e| {
-            eprintln!("Failed to get user statuses: {:?}", e);
-            Status::InternalServerError
-        })?;
-
-    // sort by time
-    user_statuses.sort_by(|a, b| b.last_punch_time.cmp(&a.last_punch_time));
-
+    // Step 1: Fetch user statuses
+    let user_statuses = sqlx::query_as::<_, UserNameDept>(
+       "SELECT
+                u.user_id, -- We'll need this to link to the 'in' status, but won't use it in the struct
+                u.name,
+                COALESCE(d.name, 'No Department') as dept_name
+            FROM
+                users u
+            LEFT JOIN
+                departments d ON u.dept_id = d.id
+            WHERE
+                EXISTS (
+                    SELECT 1
+                    FROM punches p
+                    WHERE
+                        p.user_id = u.user_id
+                        AND p.in_out = 'in'
+                        AND p.punch_time >= NOW() - INTERVAL '24 HOURS'
+                        AND p.punch_time = (
+                            SELECT MAX(punch_time)
+                            FROM punches
+                            WHERE user_id = u.user_id
+                            AND punch_time >= NOW() - INTERVAL '24 HOURS'
+                        )
+                )
+            ORDER BY
+                u.name;
+            "
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|_| Status::InternalServerError)?;
     println!("user_statuses: {:?}", user_statuses);
 
-    // temp id
+    // Step 2: Ensure a checklist_status entry for each user for the current drill_id
+    for user_status in &user_statuses {
+        sqlx::query(
+            "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, false)
+             ON CONFLICT (user_id, drill_id) DO NOTHING"
+        )
+        .bind(&user_status.user_id)
+        .bind(current_drill_id)
+        .execute(&state.pool)
+        .await
+        .map_err(|_| Status::InternalServerError)?;
+    }
+    println!("checklist_status entries created for current drill_id: {:?}", current_drill_id);
 
+    // Fetch the actual checklist statuses with the found status
+    let checklist_statuses = sqlx::query!(
+        "SELECT user_id, found FROM checklist_status WHERE drill_id = $1",
+        current_drill_id
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|_| Status::InternalServerError)?;
+    println!("checklist_statuses: {:?}", checklist_statuses);
+
+
+    // quick lookup
+    let checklist_status_map: HashMap<String, bool> = checklist_statuses
+        .into_iter()
+        .map(|cs| (cs.user_id.unwrap(), cs.found.unwrap()))
+        .collect();
+
+    println!("checklist_status_map: {:?}", checklist_status_map);
+
+    // Step 3: Now fetch the joined user statuses and checklist status
     let formatted_user_statuses: Vec<_> = user_statuses
         .into_iter()
         .map(|status| {
-            // Assume the NaiveDateTime is in UTC, then convert to local time and format
-            let utc_datetime: DateTime<Utc> =
-                DateTime::<Utc>::from_utc(status.last_punch_time, Utc);
-            let mountain_datetime = utc_datetime.with_timezone(&Mountain);
-            let formatted_time = mountain_datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+
+            // get status from map
+            let found_status = *checklist_status_map.get(&status.user_id).unwrap_or(&false);
+            println!("found_status: {:?} for id {:?}", found_status, &status.user_id);
 
             // Return the status with the formatted time
-            UserStatusDisplay {
+            UserChecklistDisplay {
                 temp_id: func::generate_temp_id(&status.user_id),
                 name: status.name,
-                in_out: status.in_out,
-                last_punch_time: formatted_time, // This will now be a String
                 dept_name: status.dept_name,
+                drill_id: current_drill_id,
+                found: found_status,
             }
         })
         .collect();
 
-    println!("formatted_user_statuses: {:?}", formatted_user_statuses);
-
-    let context = context! { user_statuses: formatted_user_statuses };
+    // Finally, create the context and render the template
     println!("template_name: {:?}", template_name);
+    let context = context! { user_statuses: formatted_user_statuses };
     Ok(Template::render(template_name, context))
 }
 
@@ -759,6 +772,13 @@ struct UserOnly {
     user_id: String,
 }
 
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+struct UserNameDept {
+    user_id: String,
+    name: String,
+    dept_name: String,
+}
+
 #[derive(Deserialize, Serialize, FromRow)]
 struct UserId {
     user_id: String,
@@ -774,6 +794,16 @@ struct UserStatus {
     last_punch_time: NaiveDateTime,
     dept_name: String,
 }
+
+#[derive(sqlx::FromRow, Serialize, Debug)]
+struct UserChecklistDisplay {
+    temp_id: String,
+    name: String,
+    dept_name: String,
+    drill_id: i32,
+    found: bool,
+}
+
 #[derive(sqlx::FromRow, Serialize, Debug)]
 struct UserStatusDisplay {
     temp_id: String,
@@ -781,6 +811,8 @@ struct UserStatusDisplay {
     in_out: InOut,
     last_punch_time: String, // Now it's a String to hold the formatted date
     dept_name: String,
+    drill_id: Option<i32>,
+    found: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, FromRow)]
