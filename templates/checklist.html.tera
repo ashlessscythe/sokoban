@@ -71,6 +71,7 @@
                 name="found_status"
                 value="found"
                 data-user-id="{{ user_status.temp_id }}"
+                data-user-name="{{ user_status.name }}"
                 class="status-checkbox"
               />
             </td>
@@ -84,6 +85,7 @@
           </div>
         </tbody>
       </table>
+      <div id="message-container"></div>
     </div>
     <div class="update-button-contaner">
       <button class="centered-button" type="button" onclick="sendUpdates()">
@@ -107,24 +109,62 @@
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
 
-  // iterate and add event listener to each checkbox
+  // Iterate and add event listener to each checkbox
   async function sendUpdates() {
     const checkboxes = document.querySelectorAll(".status-checkbox");
-    checkboxes.forEach(async (checkbox) => {
+    for (const checkbox of checkboxes) {
       const userId = checkbox.dataset.userId;
       const found = checkbox.checked; // true if checked, false if not
-      await sendUpdate(userId, found);
-    });
+      const userName = checkbox.dataset.userName; 
+      const response = await sendUpdate(userId, found, name);
+
+      if (response.ok) {
+        // If response status is 200-299
+        console.log(`Update successful for user ID: ${userName}`);
+        displaySuccessMessage(`Update successful for user ID: ${userName}`);
+      } else {
+        // Handle non-successful responses
+        console.error(`Failed to update for user ID: ${userName}`);
+        displayErrorMessage(`Failed to update for user ID: ${userName}`);
+      }
+    }
+  }
+  // Function to display a success message
+  function displaySuccessMessage(message) {
+    const messageContainer = document.getElementById("message-container"); // Make sure you have this container in your HTML
+    const successMessageElement = document.createElement("div");
+    successMessageElement.textContent = message;
+    successMessageElement.classList.add("success-message"); // Add any classes for styling the message
+    messageContainer.appendChild(successMessageElement);
+
+    // Optionally, remove the message after some time
+    setTimeout(() => {
+      messageContainer.removeChild(successMessageElement);
+    }, 2000); // Remove after 2 seconds
   }
 
+  // Function to display an error message (similar to the success message)
+  function displayErrorMessage(message) {
+    // Implement similar to displaySuccessMessage
+    const messageContainer = document.getElementById("message-container"); // Make sure you have this container in your HTML
+    const errorMessageElement = document.createElement("div");
+    errorMessageElement.textContent = message;
+    errorMessageElement.classList.add("error-message"); // Add any classes for styling the message
+    messageContainer.appendChild(errorMessageElement);
+
+    // Optionally, remove the message after some time
+    setTimeout(() => {
+      messageContainer.removeChild(errorMessageElement);
+    }, 2000); // Remove after 2 seconds
+  }
   // send update to server
-  async function sendUpdate(userId, found) {
+  async function sendUpdate(userId, found, userName) {
     const url = "/status/update-found-status";
     const drillId = new Date().toISOString().replace(/-/g, "").substring(0, 8); // Default drill ID in yyyymmdd format
     console.log("url is", url);
     console.log(
       "Updating status for user",
-      userId,
+      userName,
       "to",
       found,
       "for drill",
@@ -143,13 +183,12 @@
         }),
       });
 
-      if (response.ok) {
-        console.log("Status updated successfully");
-      } else {
-        console.error("Error updating status:", response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      return response;
     } catch (error) {
-      console.error("Network error:", error);
+      console.error("There was an error!", error);
     }
   }
 
