@@ -388,22 +388,25 @@ async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
     println!("checklist_status entries created for current drill_id: {:?}", current_drill_id);
 
     // Fetch the actual checklist statuses with the found status
-    let checklist_statuses = sqlx::query!(
-        "SELECT user_id, found FROM checklist_status WHERE drill_id = $1",
-        current_drill_id
-    )
+    let checklist_statuses: Vec<FoundStatusUpdate> = sqlx::query_as(
+        "SELECT user_id, drill_id, found FROM checklist_status WHERE drill_id = $1")
+    .bind(current_drill_id)
     .fetch_all(&state.pool)
     .await
-    .map_err(|_| Status::InternalServerError)?;
+    .map_err(|e| {
+        eprintln!("Failed to get checklist statuses: {:?}", e);
+        Status::InternalServerError
+    })?;
     println!("checklist_statuses: {:?}", checklist_statuses);
 
+    fn convert_to_map(checklist_statuses: Vec<FoundStatusUpdate>) -> HashMap<String, bool> {
+        checklist_statuses
+            .into_iter()
+            .map(|cs| (cs.user_id, cs.found))
+            .collect()
+    }
 
-    // quick lookup
-    let checklist_status_map: HashMap<String, bool> = checklist_statuses
-        .into_iter()
-        .map(|cs| (cs.user_id.unwrap(), cs.found.unwrap()))
-        .collect();
-
+    let checklist_status_map = convert_to_map(checklist_statuses);
     println!("checklist_status_map: {:?}", checklist_status_map);
 
     // Step 3: Now fetch the joined user statuses and checklist status
@@ -815,7 +818,7 @@ struct UserStatusDisplay {
     found: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize, FromRow)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 struct FoundStatusUpdate {
     user_id: String,
     drill_id: Option<i32>,
