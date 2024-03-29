@@ -350,6 +350,8 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
         })
         .collect();
 
+    println!("formatted_user_statuses: {:?}", formatted_user_statuses);
+
     let context = context! { user_statuses: formatted_user_statuses };
     println!("template_name: {:?}", template_name);
     Ok(Template::render(template_name, context))
@@ -380,7 +382,7 @@ async fn checklist(
 async fn build_user_id_hashmap(
     state: &State<MyState>,
 ) -> Result<HashMap<String, String>, BadRequest<Json<String>>> {
-    let user_ids_result = sqlx::query_as::<_, UserId>("SELECT user_id FROM users")
+    let user_ids_result = sqlx::query_as::<_, UserOnly>("SELECT user_id FROM users")
         .fetch_all(&state.pool)
         .await;
 
@@ -425,12 +427,18 @@ async fn update_found_status(
     };
 
     // update status
+    println!("original_user_id: {:?}", original_user_id);
+    println!("drill_id: {:?}", found_status.drill_id.unwrap_or(func::get_drill_id(None)));
+    println!("found: {:?}", found_status.found);
+
     let result = sqlx::query!(
         "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, $3) ON CONFLICT (user_id, drill_id) DO UPDATE SET found = $3",
         original_user_id,
         found_status.drill_id.unwrap_or(func::get_drill_id(None)),
         found_status.found
-    );
+    ).execute(&state.pool).await;   // add pool, bruh
+
+    println!("result: {:?}", result);
     Ok(Json(found_status.into_inner()))
 
 }
@@ -696,6 +704,11 @@ struct User {
 }
 
 #[derive(Deserialize, Serialize, FromRow)]
+struct UserOnly {
+    user_id: String,
+}
+
+#[derive(Deserialize, Serialize, FromRow)]
 struct UserId {
     user_id: String,
     name: Option<String>,
@@ -710,7 +723,7 @@ struct UserStatus {
     last_punch_time: NaiveDateTime,
     dept_name: String,
 }
-#[derive(sqlx::FromRow, Serialize)]
+#[derive(sqlx::FromRow, Serialize, Debug)]
 struct UserStatusDisplay {
     temp_id: String,
     name: String,

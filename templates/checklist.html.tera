@@ -112,13 +112,13 @@
     const checkboxes = document.querySelectorAll(".status-checkbox");
     checkboxes.forEach(async (checkbox) => {
       const userId = checkbox.dataset.userId;
-      const status = checkbox.checked; // true if checked, false if not
-      await sendUpdate(userId, status);
+      const found = checkbox.checked; // true if checked, false if not
+      await sendUpdate(userId, found);
     });
   }
 
   // send update to server
-  async function sendUpdate(userId, status) {
+  async function sendUpdate(userId, found) {
     const url = "/status/update-found-status";
     const drillId = new Date().toISOString().replace(/-/g, "").substring(0, 8); // Default drill ID in yyyymmdd format
     console.log("url is", url);
@@ -126,7 +126,7 @@
       "Updating status for user",
       userId,
       "to",
-      status,
+      found,
       "for drill",
       drillId
     );
@@ -139,7 +139,7 @@
         body: JSON.stringify({
           user_id: userId,
           drill_id: parseInt(drillId, 10),
-          found: status,
+          found: found,
         }),
       });
 

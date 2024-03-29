@@ -50,9 +50,10 @@ WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Default');
 CREATE TABLE IF NOT EXISTS checklist_status (
   id SERIAL PRIMARY KEY,
   user_id VARCHAR(36) REFERENCES users(user_id),
-  drill_id INTEGER, -- If you need to track multiple drills
+  drill_id INTEGER NOT NULL, -- Assuming you always have a drill_id
   found BOOLEAN DEFAULT FALSE,
-  check_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  check_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, drill_id) -- Add this line to create the composite unique constraint
 );
 
 -- add relations bossId relates to user_id in users table
