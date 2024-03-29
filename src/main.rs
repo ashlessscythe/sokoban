@@ -341,7 +341,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
 
             // Return the status with the formatted time
             UserStatusDisplay {
-                temp_id: func::generate_temp_id(&status.user_id, Some(func::get_drill_id(None))),
+                temp_id: func::generate_temp_id(&status.user_id),
                 name: status.name,
                 in_out: status.in_out,
                 last_punch_time: formatted_time, // This will now be a String
@@ -376,6 +376,33 @@ async fn checklist(
     }
 }
 
+// build hashmap of ids from user table
+async fn build_user_id_hashmap(
+    state: &State<MyState>,
+) -> Result<HashMap<String, String>, BadRequest<Json<String>>> {
+    let user_ids_result = sqlx::query_as::<_, UserId>("SELECT user_id FROM users")
+        .fetch_all(&state.pool)
+        .await;
+
+    let user_ids = match user_ids_result {
+        Ok(ids) => ids,
+        Err(e) => {
+            eprintln!("Failed to get user list: {:?}", e);
+            return Err(BadRequest(Json("Failed to get user list".to_string())));
+        }
+    };
+
+    let user_id_hashmap = user_ids
+        .into_iter()
+        .map(|user| {
+            let hashed_id = func::generate_temp_id(&user.user_id); // Make sure this function exists and is accessible
+            (hashed_id, user.user_id)
+        })
+        .collect::<HashMap<String, String>>();
+
+    Ok(user_id_hashmap)
+}
+
 // update checklist status
 #[post("/update-found-status", format = "json", data = "<found_status>")]
 async fn update_found_status(
@@ -387,28 +414,25 @@ async fn update_found_status(
     let default_drill_id = Some(func::get_drill_id(None));
     println!("default_drill_id: {:?}", default_drill_id);
 
-    let result = sqlx::query(
-        r#"
-        UPDATE checklist_status
-        SET status = $3, drill_id = $2
-        WHERE user_id = $2
-        "#,
-    )
-    .bind(&found_status.user_id)
-    .bind(default_drill_id)
-    .bind(&found_status.found)
-    .execute(&state.pool)
-    .await;
-    // print query
-    println!("query: {:?}", result);
+    // build hashmap of ids from user table
+    let user_id_hashmap = build_user_id_hashmap(state).await.map_err(|_| Status::InternalServerError)?;
 
-    match result {
-        Ok(_) => Ok(Json(found_status.into_inner())),
-        Err(_) => {
-            println!("Failed to update the status: {:?}", result);
-            Err(Status::BadRequest)
-        },
-    }
+    let temp_id = found_status.user_id.clone();
+    let original_user_id = if let Some(user_id) = user_id_hashmap.get(temp_id.as_str()) {
+        user_id
+    } else {
+        return Err(Status::NotFound);
+    };
+
+    // update status
+    let result = sqlx::query!(
+        "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, $3) ON CONFLICT (user_id, drill_id) DO UPDATE SET found = $3",
+        original_user_id,
+        found_status.drill_id.unwrap_or(func::get_drill_id(None)),
+        found_status.found
+    );
+    Ok(Json(found_status.into_inner()))
+
 }
 
 // list of all users
@@ -695,9 +719,9 @@ struct UserStatusDisplay {
     dept_name: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, FromRow)]
 struct FoundStatusUpdate {
     user_id: String,
-    drill_id: Option<i64>,
+    drill_id: Option<i32>,
     found: bool,
 }

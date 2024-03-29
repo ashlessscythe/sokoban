@@ -5,23 +5,22 @@ use sha2::{Digest, Sha256};
 
 pub struct ExtractedUserId(String);
 
-pub fn get_drill_id(drill_id: Option<i64>) -> i64 {
+pub fn get_drill_id(drill_id: Option<i32>) -> i32 {
     match drill_id {
         Some(id) => id,
         None => {
             let today = Utc::now().format("%Y%m%d").to_string();
-            today.parse::<i64>().unwrap_or_default()
+            today.parse::<i32>().unwrap_or_default()
         }
     }
 }
-        
 
-pub fn generate_temp_id(user_id: &str, drill_id: Option<i64>) -> String {
+// generate_temp_id generates a temporary ID for the user.
+pub fn generate_temp_id(user_id: &str) -> String {
+    let drill_id = get_drill_id(None);
     let mut hasher = Sha256::new();
     hasher.update(user_id);
-    if let Some(id) = drill_id {
-        hasher.update(id.to_string());
-    }
+    hasher.update(&drill_id.to_ne_bytes());
     format!("{:x}", hasher.finalize())
 }
 
