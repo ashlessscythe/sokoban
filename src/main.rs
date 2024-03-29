@@ -51,7 +51,7 @@ async fn login(
         cookies.add_private(Cookie::new("user_token", login_form.user_token.clone()));
         Ok(Json(LoginResponse {
             success: true,
-            message: "Login sucessful".to_string(),
+            message: "Login successful".to_string(),
             // redirect to where they were going
             redirect: Some(
                 cookies
@@ -102,34 +102,29 @@ impl<'r> FromRequest<'r> for Authenticated {
 
 async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
     // Check if the token matches the static value first
-    if token == "mysupersecrettoken" {
+    if token == "mysecrettoken" {
         println!("Token matched the static secret token.");
         return true;
     }
 
+    println!("Looking for token: {}", token);
     // Proceed with the database check if it's not the static token
-    let result = sqlx::query("SELECT EXISTS (SELECT 1 FROM users WHERE user_id = $1)")
+    let result = sqlx::query("SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1)")
         .bind(token)
         .fetch_one(&state.pool)
         .await;
 
+    // return boolean true if token exists in db
     match result {
-        Ok(record) => {
-            // Depending on the SQLx version and database used, the way to extract the EXISTS result might vary.
-            // Assuming `record` here is a Row and you're querying a PostgreSQL database.
-            // The correct column index or name should be used based on your actual query's return.
-            let exists: bool = record.try_get(0).unwrap_or(false); // Use column index if column name is not available
-            if exists {
-                println!("A record with the token was found in the database.");
-            }
-            exists
-        }
-        Err(_) => {
-            println!("Error querying the database.");
+        Ok(row) => row.get(0),
+        Err(e) => {
+            eprintln!("Failed to check token: {:?}", e);
             false
         }
     }
+
 }
+
 
 #[get("/error")]
 fn error_page() -> Template {
@@ -222,7 +217,7 @@ async fn status_list(
         Some(_) => {
             // User is authenticated
             println!("getting template for status list");
-            user_statuses(state, false).await
+            get_status_list(state).await
         }
         None => {
             // User is not authenticated, provide a message and render the login form.
@@ -233,57 +228,15 @@ async fn status_list(
     }
 }
 
-
-
-// get users that are currently in
-async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Template, Status> {
+// list of latest punches
+async fn get_status_list(state: &State<MyState>) -> Result<Template, Status> {
     // appropriate template
-    let template_name = if filter_in {
-        "checklist"
-    } else {
-        "status_list"
-    };
+    let template_name = "status_list";
+
     println!("template_name: {:?}", template_name);
+
     // appropriate query
-    let sql_query = if filter_in {
-        r#"
-        SELECT
-            u.user_id,
-            u.name,
-            latest_punch.in_out,
-            latest_punch.last_punch_time,
-            COALESCE(d.name, 'No Department') as dept_name
-        FROM
-            users u
-        LEFT JOIN
-            departments d ON u.dept_id = d.id
-        INNER JOIN
-            (
-                SELECT
-                    p.user_id,
-                    p.in_out,
-                    p.punch_time as last_punch_time
-                FROM
-                    punches p
-                INNER JOIN
-                    (
-                        SELECT
-                            user_id,
-                            MAX(punch_time) as max_punch_time
-                        FROM
-                            punches
-                        WHERE
-                            punch_time >= NOW() - INTERVAL '24 HOURS'
-                        GROUP BY
-                            user_id
-                    ) as max_punch ON p.user_id = max_punch.user_id AND p.punch_time = max_punch.max_punch_time
-                WHERE
-                    p.in_out = 'in'
-            ) as latest_punch ON u.user_id = latest_punch.user_id
-        ORDER BY
-            u.name, latest_punch.last_punch_time DESC;
-        "#
-    } else {
+    let sql_query = (
         r#"
         SELECT
             u.user_id,
@@ -313,7 +266,7 @@ async fn user_statuses(state: &State<MyState>, filter_in: bool) -> Result<Templa
         ORDER BY
             u.name, p.punch_time DESC;
         "#
-    };
+    );
 
     let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<Postgres, UserStatus>(sql_query)
         .fetch_all(&state.pool)
@@ -367,7 +320,7 @@ async fn checklist(
         Some(_) => {
             // User is authenticated
             println!("getting template for in status");
-            user_statuses(state, true).await
+            get_checklist(state).await
         }
         None => {
             // User is not authenticated, provide a message and render the login form.
@@ -377,6 +330,95 @@ async fn checklist(
         }
     }
 }
+
+// get users that are currently in
+async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
+    // appropriate template
+    let template_name = "checklist";
+
+    println!("template_name: {:?}", template_name);
+    // appropriate query
+    let sql_query = 
+        r#"
+        SELECT
+            u.user_id,
+            u.name,
+            latest_punch.in_out,
+            latest_punch.last_punch_time,
+            COALESCE(d.name, 'No Department') as dept_name
+        FROM
+            users u
+        LEFT JOIN
+            departments d ON u.dept_id = d.id
+        INNER JOIN
+            (
+                SELECT
+                    p.user_id,
+                    p.in_out,
+                    p.punch_time as last_punch_time
+                FROM
+                    punches p
+                INNER JOIN
+                    (
+                        SELECT
+                            user_id,
+                            MAX(punch_time) as max_punch_time
+                        FROM
+                            punches
+                        WHERE
+                            punch_time >= NOW() - INTERVAL '24 HOURS'
+                        GROUP BY
+                            user_id
+                    ) as max_punch ON p.user_id = max_punch.user_id AND p.punch_time = max_punch.max_punch_time
+                WHERE
+                    p.in_out = 'in'
+            ) as latest_punch ON u.user_id = latest_punch.user_id
+        ORDER BY
+            u.name, latest_punch.last_punch_time DESC;
+        "#;
+
+    let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<Postgres, UserStatus>(sql_query)
+        .fetch_all(&state.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Failed to get user statuses: {:?}", e);
+            Status::InternalServerError
+        })?;
+
+    // sort by time
+    user_statuses.sort_by(|a, b| b.last_punch_time.cmp(&a.last_punch_time));
+
+    println!("user_statuses: {:?}", user_statuses);
+
+    // temp id
+
+    let formatted_user_statuses: Vec<_> = user_statuses
+        .into_iter()
+        .map(|status| {
+            // Assume the NaiveDateTime is in UTC, then convert to local time and format
+            let utc_datetime: DateTime<Utc> =
+                DateTime::<Utc>::from_utc(status.last_punch_time, Utc);
+            let mountain_datetime = utc_datetime.with_timezone(&Mountain);
+            let formatted_time = mountain_datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+
+            // Return the status with the formatted time
+            UserStatusDisplay {
+                temp_id: func::generate_temp_id(&status.user_id),
+                name: status.name,
+                in_out: status.in_out,
+                last_punch_time: formatted_time, // This will now be a String
+                dept_name: status.dept_name,
+            }
+        })
+        .collect();
+
+    println!("formatted_user_statuses: {:?}", formatted_user_statuses);
+
+    let context = context! { user_statuses: formatted_user_statuses };
+    println!("template_name: {:?}", template_name);
+    Ok(Template::render(template_name, context))
+}
+
 
 // build hashmap of ids from user table
 async fn build_user_id_hashmap(
@@ -432,16 +474,26 @@ async fn update_found_status(
     println!("found: {:?}", found_status.found);
 
     let result = sqlx::query!(
-        "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, $3) ON CONFLICT (user_id, drill_id) DO UPDATE SET found = $3",
+        "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, drill_id) DO UPDATE SET found = $3",
         original_user_id,
-        found_status.drill_id.unwrap_or(func::get_drill_id(None)),
+        found_status.drill_id.unwrap_or_else(|| func::get_drill_id(None)),
         found_status.found
-    ).execute(&state.pool).await;   // add pool, bruh
+    )
+    .execute(&state.pool) // Use `execute` here
+    .await
+    .map_err(|e| {
+        eprintln!("SQL Error: {:?}", e);
+        Status::InternalServerError
+    })?;
+
+    println!("Number of rows inserted or updated: {:?}", result.rows_affected());
 
     println!("result: {:?}", result);
     Ok(Json(found_status.into_inner()))
 
 }
+
 
 // list of all users
 #[get("/users")]
