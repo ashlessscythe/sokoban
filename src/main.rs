@@ -122,9 +122,7 @@ async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
             false
         }
     }
-
 }
-
 
 #[get("/error")]
 fn error_page() -> Template {
@@ -236,8 +234,7 @@ async fn get_status_list(state: &State<MyState>) -> Result<Template, Status> {
     println!("template_name: {:?}", template_name);
 
     // appropriate query
-    let sql_query = (
-        r#"
+    let sql_query = (r#"
         SELECT
             u.user_id,
             u.name,
@@ -265,8 +262,7 @@ async fn get_status_list(state: &State<MyState>) -> Result<Template, Status> {
             p.punch_time = latest_punch.max_punch_time
         ORDER BY
             u.name, p.punch_time DESC;
-        "#
-    );
+        "#);
 
     let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<Postgres, UserStatus>(sql_query)
         .fetch_all(&state.pool)
@@ -377,7 +373,7 @@ async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
     for user_status in &user_statuses {
         sqlx::query(
             "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, false)
-             ON CONFLICT (user_id, drill_id) DO NOTHING"
+             ON CONFLICT (user_id, drill_id) DO NOTHING",
         )
         .bind(&user_status.user_id)
         .bind(current_drill_id)
@@ -385,18 +381,21 @@ async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
         .await
         .map_err(|_| Status::InternalServerError)?;
     }
-    println!("checklist_status entries created for current drill_id: {:?}", current_drill_id);
+    println!(
+        "checklist_status entries created for current drill_id: {:?}",
+        current_drill_id
+    );
 
     // Fetch the actual checklist statuses with the found status
-    let checklist_statuses: Vec<FoundStatusUpdate> = sqlx::query_as(
-        "SELECT user_id, drill_id, found FROM checklist_status WHERE drill_id = $1")
-    .bind(current_drill_id)
-    .fetch_all(&state.pool)
-    .await
-    .map_err(|e| {
-        eprintln!("Failed to get checklist statuses: {:?}", e);
-        Status::InternalServerError
-    })?;
+    let checklist_statuses: Vec<FoundStatusUpdate> =
+        sqlx::query_as("SELECT user_id, drill_id, found FROM checklist_status WHERE drill_id = $1")
+            .bind(current_drill_id)
+            .fetch_all(&state.pool)
+            .await
+            .map_err(|e| {
+                eprintln!("Failed to get checklist statuses: {:?}", e);
+                Status::InternalServerError
+            })?;
     println!("checklist_statuses: {:?}", checklist_statuses);
 
     fn convert_to_map(checklist_statuses: Vec<FoundStatusUpdate>) -> HashMap<String, bool> {
@@ -413,10 +412,12 @@ async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
     let formatted_user_statuses: Vec<_> = user_statuses
         .into_iter()
         .map(|status| {
-
             // get status from map
             let found_status = *checklist_status_map.get(&status.user_id).unwrap_or(&false);
-            println!("found_status: {:?} for id {:?}", found_status, &status.user_id);
+            println!(
+                "found_status: {:?} for id {:?}",
+                found_status, &status.user_id
+            );
 
             // Return the status with the formatted time
             UserChecklistDisplay {
@@ -434,7 +435,6 @@ async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
     let context = context! { user_statuses: formatted_user_statuses };
     Ok(Template::render(template_name, context))
 }
-
 
 // build hashmap of ids from user table
 async fn build_user_id_hashmap(
@@ -469,13 +469,14 @@ async fn update_found_status(
     state: &State<MyState>,
     found_status: Json<FoundStatusUpdate>,
 ) -> Result<Json<FoundStatusUpdate>, Status> {
-
     // print drill_id
     let default_drill_id = Some(func::get_drill_id(None));
     println!("default_drill_id: {:?}", default_drill_id);
 
     // build hashmap of ids from user table
-    let user_id_hashmap = build_user_id_hashmap(state).await.map_err(|_| Status::InternalServerError)?;
+    let user_id_hashmap = build_user_id_hashmap(state)
+        .await
+        .map_err(|_| Status::InternalServerError)?;
 
     let temp_id = found_status.user_id.clone();
     let original_user_id = if let Some(user_id) = user_id_hashmap.get(temp_id.as_str()) {
@@ -486,29 +487,38 @@ async fn update_found_status(
 
     // update status
     println!("original_user_id: {:?}", original_user_id);
-    println!("drill_id: {:?}", found_status.drill_id.unwrap_or(func::get_drill_id(None)));
+    println!(
+        "drill_id: {:?}",
+        found_status.drill_id.unwrap_or(func::get_drill_id(None))
+    );
     println!("found: {:?}", found_status.found);
 
     let result = sqlx::query(
-            "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, $3)
-            ON CONFLICT (user_id, drill_id) DO UPDATE SET found = $3")
-        .bind(original_user_id)
-        .bind(found_status.drill_id.unwrap_or_else(|| func::get_drill_id(None)))
-        .bind(found_status.found)
-        .execute(&state.pool)
-        .await
-        .map_err(|e| {
-            eprintln!("SQL Error: {:?}", e);
-            Status::InternalServerError
-        })?;
+        "INSERT INTO checklist_status (user_id, drill_id, found) VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, drill_id) DO UPDATE SET found = $3",
+    )
+    .bind(original_user_id)
+    .bind(
+        found_status
+            .drill_id
+            .unwrap_or_else(|| func::get_drill_id(None)),
+    )
+    .bind(found_status.found)
+    .execute(&state.pool)
+    .await
+    .map_err(|e| {
+        eprintln!("SQL Error: {:?}", e);
+        Status::InternalServerError
+    })?;
 
-    println!("Number of rows inserted or updated: {:?}", result.rows_affected());
+    println!(
+        "Number of rows inserted or updated: {:?}",
+        result.rows_affected()
+    );
 
     println!("result: {:?}", result);
     Ok(Json(found_status.into_inner()))
-
 }
-
 
 // list of all users
 #[get("/users")]
@@ -578,17 +588,21 @@ async fn add_bulk(
 #[post("/", data = "<data>")]
 async fn add(data: Json<User>, state: &State<MyState>) -> Result<Json<User>, BadRequest<String>> {
     // generate if user_id not provided
-    let user_id = data.user_id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
+    let user_id = data
+        .user_id
+        .clone()
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
 
-    let user =
-        sqlx::query_as::<_, User>("INSERT INTO users (name, email, user_id, dept_id) VALUES ($1, $2, $3, $4) RETURNING *")
-            .bind(&data.name)
-            .bind(&data.email)
-            .bind(user_id.to_string())
-            .bind(&data.dept_id)
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| BadRequest(e.to_string()))?;
+    let user = sqlx::query_as::<_, User>(
+        "INSERT INTO users (name, email, user_id, dept_id) VALUES ($1, $2, $3, $4) RETURNING *",
+    )
+    .bind(&data.name)
+    .bind(&data.email)
+    .bind(user_id.to_string())
+    .bind(&data.dept_id)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| BadRequest(e.to_string()))?;
     Ok(Json(user))
 }
 
@@ -678,10 +692,13 @@ fn register() -> Result<Template, BadRequest<String>> {
 // routes
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    dotenv::dotenv().ok();
-    // Manually create a connection pool to the database
+    dotenv::dotenv().expect("Failed to read .env file");
+
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    println!("database_url: {}", database_url);
+
+    println!("database_url: {:?}", database_url);
+
+    // construct pool
     let pool = PgPool::connect(&database_url)
         .await
         .expect("Failed to create pool");
@@ -720,7 +737,10 @@ async fn main() -> Result<(), rocket::Error> {
         .mount("/user", routes![retrieve, add, add_bulk])
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
         .mount("/punch", routes![punch, last_punch, get_user_punches])
-        .mount("/status", routes![status_list, checklist, update_found_status])
+        .mount(
+            "/status",
+            routes![status_list, checklist, update_found_status],
+        )
         .mount("/static", FileServer::from(static_files_dir))
         // .mount("/id", routes![id_list])
         .mount(
