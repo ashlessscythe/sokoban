@@ -692,7 +692,7 @@ fn register() -> Result<Template, BadRequest<String>> {
 // routes
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    dotenv::dotenv().expect("Failed to read .env file");
+    dotenv::dotenv().ok();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
