@@ -15,6 +15,7 @@ rocket_cors = "0.6.0"
 rocket_dyn_templates = { version = "0.1.0", features = ["tera"] }
 serde = "1.0.148"
 serde_json = "1.0.114"
+sha2 = "0.10.8"
 tokio = "1.26.0"
 uuid = { version = "1.8.0", features = ["v4"] }
 watch = "0.2.3"

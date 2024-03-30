@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Checklist</title>
+    <link rel="stylesheet" href="../static/css/style.css" />
+    <script src="../static/js/helpers.js"></script>
+  </head>
+  <body>
+    <div style="display: flex; align-items: center">
+      <button
+        class="circle-button"
+        onclick="location.href='/home'"
+        style="
+          display: block;
+          margin-bottom: 20px;
+          margin-right: 20px;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          overflow: hidden;
+          padding: 0;
+          border: none;
+        "
+      >
+        <img
+          src="../static/images/back_arrow.png"
+          alt="Go to Homepage"
+          style="width: 100%; height: auto"
+        />
+      </button>
+      <h1>Checklist</h1>
+      <button class="refresh-button" onclick="location.reload()">
+        Refresh List
+      </button>
+    </div>
+    <div
+      class="table-container"
+      style="
+        position: relative;
+        height: 60vh;
+        min-height: 200px;
+        overflow: auto;
+      "
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Department</th>
+            <th>
+              Found
+              <div style="font-size: smaller; color: gray">
+                (not working yet)
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          {% for user_status in user_statuses %}
+          <tr>
+            <td>{{ user_status.name }}</td>
+            <td>{{ user_status.dept_name }}</td>
+            <td>
+              <input
+                type="checkbox"
+                name="found_status"
+                value="found"
+                data-user-id="{{ user_status.temp_id }}"
+                data-user-name="{{ user_status.name }}"
+                class="status-checkbox"
+                {% if user_status.found %}checked{% endif %}
+              />
+            </td>
+          </tr>
+          {% endfor %}
+          <div
+            id="scroll-arrow"
+            style="display: none; position: fixed; bottom: 10px; right: 10px"
+          >
+            <img src="../../static/images/scroll_arrow.png" alt="Scroll down" />
+          </div>
+        </tbody>
+      </table>
+      <div id="message-container"></div>
+    </div>
+    <div class="update-button-contaner">
+      <button class="centered-button" type="button" onclick="sendUpdates()">
+        Push Update
+      </button>
+    </div>
+    <button
+      class="block-button"
+      onclick="location.href='/home'"
+      style="position: fixed; bottom: 0"
+    >
+      Go to Homepage
+    </button>
+  </body>
+</html>
+
+<script>
+  startInactivityTimer(60000);
+  setNumberOfRows(15);
+  console.log(
+    "Number of rows: " + document.getElementById("table-body").rows.length
+  );
+
+  // Iterate and add event listener to each checkbox
+  async function sendUpdates() {
+    const checkboxes = document.querySelectorAll(".status-checkbox");
+    for (const checkbox of checkboxes) {
+      const userId = checkbox.dataset.userId;
+      const found = checkbox.checked; // true if checked, false if not
+      const userName = checkbox.dataset.userName; 
+      const response = await sendUpdate(userId, found, name);
+
+      if (response.ok) {
+        // If response status is 200-299
+        console.log(`Update successful for user ID: ${userName}`);
+        displaySuccessMessage(`Update successful for user ID: ${userName}`);
+      } else {
+        // Handle non-successful responses
+        console.error(`Failed to update for user ID: ${userName}`);
+        displayErrorMessage(`Failed to update for user ID: ${userName}`);
+      }
+    }
+  }
+  // Function to display a success message
+  function displaySuccessMessage(message) {
+    const messageContainer = document.getElementById("message-container"); // Make sure you have this container in your HTML
+    const successMessageElement = document.createElement("div");
+    successMessageElement.textContent = message;
+    successMessageElement.classList.add("success-message"); // Add any classes for styling the message
+    messageContainer.appendChild(successMessageElement);
+
+    // Optionally, remove the message after some time
+    setTimeout(() => {
+      messageContainer.removeChild(successMessageElement);
+    }, 2000); // Remove after 2 seconds
+  }
+
+  // Function to display an error message (similar to the success message)
+  function displayErrorMessage(message) {
+    // Implement similar to displaySuccessMessage
+    const messageContainer = document.getElementById("message-container"); // Make sure you have this container in your HTML
+    const errorMessageElement = document.createElement("div");
+    errorMessageElement.textContent = message;
+    errorMessageElement.classList.add("error-message"); // Add any classes for styling the message
+    messageContainer.appendChild(errorMessageElement);
+
+    // Optionally, remove the message after some time
+    setTimeout(() => {
+      messageContainer.removeChild(errorMessageElement);
+    }, 2000); // Remove after 2 seconds
+  }
+  // send update to server
+  async function sendUpdate(userId, found, userName) {
+    const url = "/status/update-found-status";
+    const drillId = new Date().toISOString().replace(/-/g, "").substring(0, 8); // Default drill ID in yyyymmdd format
+    console.log("url is", url);
+    console.log(
+      "Updating status for user",
+      userName,
+      "to",
+      found,
+      "for drill",
+      drillId
+    );
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          drill_id: parseInt(drillId, 10),
+          found: found,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response;
+    } catch (error) {
+      console.error("There was an error!", error);
+    }
+  }
+
+  // Function to control the number of rows
+  function setNumberOfRows(numRows) {
+    var tableBody = document.getElementById("table-body");
+    while (tableBody.rows.length > numRows) {
+      tableBody.deleteRow(numRows);
+    }
+  }
+  function setNumberOfRows(numRows) {
+    var tableBody = document.getElementById("table-body");
+    var scrollArrow = document.getElementById("scroll-arrow");
+    while (tableBody.rows.length > numRows) {
+      tableBody.deleteRow(numRows);
+    }
+    if (tableBody.rows.length > numRows) {
+      scrollArrow.style.display = "block";
+    } else {
+      scrollArrow.style.display = "none";
+    }
+  }
+  // Example function to handle checkbox change
+  function handleFoundCheckbox(userId, isChecked) {
+    // Send the found status to the server
+    fetch("/update-found-status", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, found: isChecked }),
+    })
+      .then((response) => {
+        // handle the response
+      })
+      .catch((error) => {
+        // handle any errors
+      });
+  }
+</script>
+
+<style>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  table,
+  th,
+  td {
+    border: 2px double #ddd; /* Double lines for grid */
+  }
+
+  th,
+  td {
+    padding: 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f2f2f2;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  th:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    backdrop-filter: blur(5px);
+    z-index: -1;
+  }
+
+  tr:hover {
+    background-color: #e8e8e8; /* Highlight on hover */
+  }
+  .circle-button {
+    display: block;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    padding: 0;
+    border: none;
+    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  }
+
+  .circle-button:hover {
+    transform: translateY(-5px);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  .circle-button img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .update-button-contaner {
+    text-align: center;
+    items-align: center;
+  }
+
+  .centered-button {
+    display: block;
+    margin: 20px auto;
+    font-size: 20px;
+    width: auto;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #a7c7e7; /* Example background color */
+    border: none; /* Example border removal */
+    cursor: pointer; /* Changes the cursor on hover */
+    transition: background-color 0.3s; /* Smooth background color transition on hover */
+  }
+
+  .refresh-button {
+    display: block;
+    margin: 20px auto;
+    font-size: 20px;
+    width: auto;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #a7c7e7; /* Example background color */
+    border: none; /* Example border removal */
+    cursor: pointer; /* Changes the cursor on hover */
+    transition: background-color 0.3s; /* Smooth background color transition on hover */
+  }
+
+  /* This is a class to format the date, we'll add it in the <td> tag */
+  .iso-date {
+    white-space: nowrap; /* Prevents wrapping */
+  }
+</style>

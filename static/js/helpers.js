@@ -119,3 +119,36 @@ function cancelInputClearTimer() {
     });
   }
 }
+
+window.addEventListener('pageshow', () => {
+  // just to make sure the loader is hidden when the page is shown
+  hideLoader();
+});
+
+function showLoader() {
+  let loader = document.getElementById('loader-container')
+  if (loader) {
+    loader.style.display = 'flex';
+  }
+}
+
+function hideLoader() {
+  let loader = document.getElementById('loader-container')
+  if (loader) {
+    loader.style.display = 'none';
+  }
+}
+
+function navigateWithLoadingDots(url) {
+  // Show the loader container
+  let loader = document.getElementById('loader-container');
+  if (loader) {
+    loader.style.display = 'flex';
+  }
+
+  // Redirect after a short delay to allow the loader to show
+  setTimeout(() => {
+    window.location.href = url;
+  }, 100); // Short delay
+}
+

@@ -1,7 +1,38 @@
-use rocket::request::{self, FromRequest, Request};
+use chrono::{Date, Utc};
 use rocket::outcome::Outcome;
+use rocket::request::{self, FromRequest, Request};
+use sha2::{Digest, Sha256};
 
 pub struct ExtractedUserId(String);
+
+pub fn get_drill_id(drill_id: Option<i32>) -> i32 {
+    match drill_id {
+        Some(id) => id,
+        None => {
+            let today = Utc::now().format("%Y%m%d").to_string();
+            today.parse::<i32>().unwrap_or_default()
+        }
+    }
+}
+
+// generate_temp_id generates a temporary ID for the user.
+pub fn generate_temp_id(user_id: &str) -> String {
+    let drill_id = get_drill_id(None); // Ensure this function is defined and returns a value
+    let mut hasher = Sha256::new();
+    hasher.update(user_id);
+    hasher.update(&drill_id.to_ne_bytes());
+
+    // Finalize the hash and obtain the result
+    let result = hasher.finalize();
+    // println!("Hasher result (raw bytes): {:?}", result);
+
+    // Convert the hash result to a hexadecimal string
+    let temp_id = format!("{:x}", result);
+    // println!("Generated temp id (hex): {}", temp_id);
+
+    temp_id
+}
+
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for ExtractedUserId {
@@ -25,13 +56,7 @@ impl UserIdExtractor {
     }
 
     pub fn extract_user_id(&self) -> String {
-        let patterns = vec![
-            ("100", 9),
-            ("21", 8),
-            ("20", 8),
-            ("104", 9),
-            ("600", 9),
-        ];
+        let patterns = vec![("100", 9), ("21", 8), ("20", 8), ("104", 9), ("600", 9)];
 
         for (prefix, length) in patterns {
             if let Some(start_index) = self.scanned_id.find(prefix) {
@@ -46,5 +71,4 @@ impl UserIdExtractor {
         );
         self.scanned_id.to_string()
     }
-
 }

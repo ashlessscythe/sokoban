@@ -46,6 +46,16 @@ INSERT INTO departments (name)
 SELECT 'Default'
 WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Default');
 
+-- Checklist Status Table
+CREATE TABLE IF NOT EXISTS checklist_status (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(36) REFERENCES users(user_id),
+  drill_id INTEGER NOT NULL, -- Assuming you always have a drill_id
+  found BOOLEAN DEFAULT FALSE,
+  check_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, drill_id) -- Add this line to create the composite unique constraint
+);
+
 -- add relations bossId relates to user_id in users table
 -- Check if the foreign key does not exist before adding it.
 DO $$ BEGIN
@@ -56,6 +66,16 @@ DO $$ BEGIN
   ) THEN
     ALTER TABLE departments
     ADD FOREIGN KEY (bossId) REFERENCES users(user_id);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.table_constraints 
+    WHERE constraint_name = 'fk_dept_id'
+  ) THEN
+    ALTER TABLE users
+    ADD CONSTRAINT fk_dept_id
+    FOREIGN KEY (dept_id)
+    REFERENCES departments(id);
   END IF;
 END $$;
 
@@ -73,3 +93,5 @@ FROM
   punches p
 JOIN
   users u ON p.user_id = u.user_id;
+
+

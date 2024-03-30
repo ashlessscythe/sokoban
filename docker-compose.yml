@@ -12,7 +12,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - RUST_BACKTRACE=full
     networks:
-      - rs-net
+      - s-net
     depends_on:
       - db
 
@@ -28,11 +28,11 @@ services:
     volumes:
       - local-pg-data:/var/lib/postgresql/data
     networks:
-      - rs-net
+      - s-net
 
 volumes:
   local-pg-data:
 
 networks:
-  rs-net:
+  s-net:
     driver: bridge
