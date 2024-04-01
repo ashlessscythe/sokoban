@@ -64,7 +64,7 @@
     </div>
 
     <script>
-      // import fn to clear input
+      // import fn to clean input
       setInputClearTimer("#userIdInput", 3000);
       document
         .getElementById("punchForm")
@@ -72,22 +72,18 @@
           event.preventDefault();
           const userInput = document.getElementById("userIdInput");
           const userId = extractUserId(userInput.value);
-          const messageDiv = document.getElementById("statusMessage"); // Ensure you have this element in your HTML
+          const messageDiv = document.getElementById("statusMessage");
 
           try {
-            // First fetch: get user name
             const userResponse = await fetch(
               `/user/${encodeURIComponent(userId)}`
             );
-
-            // Handle 400 Bad Request response
             if (userResponse.status === 400) {
               messageDiv.textContent = "User not found.";
               userInput.value = "";
               return;
             }
 
-            // Handle other non-ok responses
             if (!userResponse.ok) {
               userInput.value = "";
               messageDiv.textContent = `Error fetching user details: ${userResponse.statusText}`;
@@ -95,13 +91,11 @@
             }
 
             const userData = await userResponse.json();
-            const userName = userData.name; // Make sure the JSON structure includes 'name'
+            const userName = userData.name;
 
-            // Second fetch: get punch status
             const punchResponse = await fetch(
               `/punch/${encodeURIComponent(userId)}/last_punch`
             );
-
             if (!punchResponse.ok) {
               messageDiv.textContent =
                 "Error fetching punch details: " + punchResponse.statusText;
@@ -109,60 +103,77 @@
             }
 
             const punchData = await punchResponse.json();
-            const userStatus = punchData.in_out; // Make sure the JSON structure includes 'in_out'
+            const userStatus = punchData.in_out;
 
-            // cancel timer so we don't clear input
             cancelInputClearTimer();
 
-            // Update the page with the combined message
-            messageDiv.innerHTML = `
-              <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
-              <h2>
-                  Hello, ${userName}.<br>
-                  Your current status is ${userStatus || "No status"}.
-              </h2>
-              <button class="block-button" onclick="updateStatus('In')">CHECK IN</button>
-              <button class="block-button" onclick="updateStatus('Out')">CHECK OUT</button>
-              <button class="block-button" onclick="location.href='/home'">HomePage</button>
-              `;
-            // Hide the form
-            document.getElementById("punchForm").style.display = "none";
+            const oppositeStatus = userStatus === "In" ? "Out" : "In";
+            initiateCountdownAndStatusUpdate(
+              userName,
+              userStatus,
+              oppositeStatus,
+              userId
+            );
           } catch (error) {
-            // Handle network errors
             console.error("Fetch error:", error);
             messageDiv.textContent = "Network error: Please try again later.";
           }
         });
 
-      async function updateStatus(status) {
-        const inputField = document.getElementById("userIdInput");
-        const userId = extractUserId(inputField.value); // Get the user ID from the input
+      async function initiateCountdownAndStatusUpdate(
+        userName,
+        userStatus,
+        oppositeStatus,
+        userId,
+        timeoutSeconds = 4
+      ) {
+        // hide punchform
+        document.getElementById("punchForm").style.display = "none";
+        const messageDiv = document.getElementById("statusMessage");
+
+        messageDiv.innerHTML = `
+        <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
+        <h2>Hello, ${userName}.<br>You're currently: ${
+          userStatus || "No status"
+        }.
+          <span style="font-size: 24px;">⇒</span>
+          <p id="countdown">Checking you <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span>: ...${timeoutSeconds}...</>
+        </h2>
+    `;
+
+        const countdownElement = document.getElementById("countdown");
+        let countdown = timeoutSeconds;
+        const interval = setInterval(() => {
+          countdown -= 1;
+          countdownElement.innerHTML = `Checking you <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span>: ...${countdown}...`;
+
+          if (countdown <= 0) {
+            clearInterval(interval);
+            updateStatus(oppositeStatus, userId);
+          }
+        }, 1000);
+      }
+
+      async function updateStatus(status, userId) {
+        const messageDiv = document.getElementById("statusMessage");
         let punchUrl = `/punch/${encodeURIComponent(userId)}`;
-        const messageDiv = document.getElementById("statusMessage"); // Assuming this is where you want to show the message
 
         try {
           const punchResponse = await fetch(punchUrl, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ in_out: status }),
           });
 
           if (punchResponse.ok) {
-            // Show confirmation message
             messageDiv.innerHTML = `<p>Status updated to ${status}. Reloading...</p>`;
-
-            // Wait for a few seconds (e.g., 3 seconds) and then reload the page
             setTimeout(() => {
               window.location.reload();
-            }, 3000); // 3000 milliseconds = 3 seconds
+            }, 3000);
           } else {
-            // Handle non-OK response
             messageDiv.innerHTML = `<p>Failed to update status. Please try again.</p>`;
           }
         } catch (error) {
-          // Handle network errors
           console.error("Fetch error:", error);
           messageDiv.innerHTML = `<p>Network error: Please try again later.</p>`;
         }
