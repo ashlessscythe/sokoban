@@ -70,6 +70,8 @@
         .getElementById("punchForm")
         .addEventListener("submit", async function (event) {
           event.preventDefault();
+          // show loading dots
+          showLoader();
           const userInput = document.getElementById("userIdInput");
           const userId = extractUserId(userInput.value);
           const messageDiv = document.getElementById("statusMessage");
@@ -78,6 +80,7 @@
             const userResponse = await fetch(
               `/user/${encodeURIComponent(userId)}`
             );
+
             if (userResponse.status === 400) {
               messageDiv.textContent = "User not found.";
               userInput.value = "";
@@ -93,9 +96,21 @@
             const userData = await userResponse.json();
             const userName = userData.name;
 
+            const fetchPunchCount = await fetch(
+              `/punch/${encodeURIComponent(userId)}/count`
+            );
+            if (!fetchPunchCount.ok) {
+              messageDiv.textContent =
+                "Error fetching punch count: " + fetchPunchCount.statusText;
+              return;
+            }
+
             const punchResponse = await fetch(
               `/punch/${encodeURIComponent(userId)}/last_punch`
-            );
+            ).then((res) => {
+              hideLoader();
+              return res;
+            });
             if (!punchResponse.ok) {
               messageDiv.textContent =
                 "Error fetching punch details: " + punchResponse.statusText;
@@ -104,15 +119,21 @@
 
             const punchData = await punchResponse.json();
             const userStatus = punchData.in_out;
+            const punchCount = await fetchPunchCount.json();
 
             cancelInputClearTimer();
+
+            // set countdown higher for newbies
+            let time = punchCount <= 5 ? 7 : 3;
+            console.log("punchCount", punchCount);
 
             const oppositeStatus = userStatus === "In" ? "Out" : "In";
             initiateCountdownAndStatusUpdate(
               userName,
               userStatus,
               oppositeStatus,
-              userId
+              userId,
+              time
             );
           } catch (error) {
             console.error("Fetch error:", error);
@@ -136,16 +157,16 @@
         <h2>Hello, ${userName}.<br>You're currently: ${
           userStatus || "No status"
         }.
-          <span style="font-size: 24px;">⇒</span>
-          <p id="countdown">Checking you <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span>: ...${timeoutSeconds}...</>
+          <p id="countdown">Checking you &#8658; <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span>: ...${timeoutSeconds}...</>
         </h2>
+        <button class="block-button" onclick="window.location.href='/'">Cancel</button>
     `;
 
         const countdownElement = document.getElementById("countdown");
         let countdown = timeoutSeconds;
         const interval = setInterval(() => {
           countdown -= 1;
-          countdownElement.innerHTML = `Checking you <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span>: ...${countdown}...`;
+          countdownElement.innerHTML = `Checking you &#8658; <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span>: ...${countdown}...`;
 
           if (countdown <= 0) {
             clearInterval(interval);

@@ -612,6 +612,20 @@ async fn punch(
     Ok(Json(punch))
 }
 
+// get number of punches for user
+#[get("/<id>/count")]
+async fn count_punches(
+    id: String,
+    state: &State<MyState>,
+) -> Result<Json<i64>, BadRequest<String>> {
+    let count = sqlx::query("SELECT COUNT(*) FROM punches WHERE user_id = $1")
+        .bind(id)
+        .fetch_one(&state.pool)
+        .await
+        .map_err(|e| BadRequest(e.to_string()))?;
+    Ok(Json(count.get(0)))
+}
+
 // get users last punch
 #[get("/<id>/last_punch")]
 async fn last_punch(
@@ -719,7 +733,7 @@ async fn main() -> Result<(), rocket::Error> {
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add, add_bulk])
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
-        .mount("/punch", routes![punch, last_punch, get_user_punches])
+        .mount("/punch", routes![punch, last_punch, count_punches, get_user_punches])
         .mount("/status", routes![status_list, checklist, update_found_status])
         .mount("/static", FileServer::from(static_files_dir))
         // .mount("/id", routes![id_list])
