@@ -633,7 +633,7 @@ async fn last_punch(
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
     let punch = sqlx::query_as::<Postgres, PunchRecord>(
-        "SELECT * FROM punches WHERE user_id = $1 ORDER BY id DESC LIMIT 1",
+        "SELECT * FROM punches WHERE user_id = $1 AND punch_time > NOW() - INTERVAL '24 HOURS' ORDER BY id DESC LIMIT 1",
     )
     .bind(id)
     .fetch_optional(&state.pool)
