@@ -79,7 +79,10 @@
           try {
             const userResponse = await fetch(
               `/user/${encodeURIComponent(userId)}`
-            );
+            ).then((res) => {
+              hideLoader();
+              return res;
+            });
 
             if (userResponse.status === 400) {
               messageDiv.textContent = "User not found.";
@@ -154,9 +157,7 @@
 
         messageDiv.innerHTML = `
         <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
-        <h2>Hello, ${userName} (${
-          userStatus || "No status"
-        }).
+        <h2>Hello, ${userName}.
           <p id="countdown" style="font-style: oblique 40deg;">Checking you &#8658; <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span> &#8656; : ...${timeoutSeconds}...</>
         </h2>
         <button class="block-button" onclick="window.location.href='/'">Cancel</button>
