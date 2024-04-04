@@ -2,12 +2,12 @@ TODO:
 -------------------------------
 Add dept & supervisor?
 add device id
-Verify presence page with checkmark?
-scroll for long list
 
 
 DONE:
 ------------------
+scroll for long list
+Verify presence page with checkmark?
 idempotency
 https and tls
 Company Logo
