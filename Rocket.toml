@@ -1,5 +1,5 @@
 [release]
-secret_key = "secret"
+secret_key = "XR4l75OGsHjXYQlP2EBFx23wj+ZBwBilpF7/KyOUVfY="
 
 [default]
 address = "0.0.0.0"
