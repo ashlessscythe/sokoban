@@ -1,7 +1,6 @@
 /target
 .shuttle-storage
 Secrets*.toml
-Cargo.lock
 .env
 ignoreme/
 *.dump
