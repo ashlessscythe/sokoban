@@ -223,17 +223,10 @@ function storeCheckInLocally(checkInData) {
 }
 
 // sync when back online
-window.addEventListener("online", async () => {
-  const dbIsOnline = await checkDatabaseStatus();
-
-  if (dbIsOnline) {
-    syncLocalDataWithServer();
-  }
-});
-
 async function syncLocalDataWithServer() {
   const offlineData = JSON.parse(localStorage.getItem("offlineCheckIns")) || [];
   for (const checkInData of offlineData) {
+    console.log("syncing check-in data:", checkInData);
     await sendCheckInToServer(checkInData);
   }
   localStorage.removeItem("offlineCheckIns"); // Clear the local storage after syncing

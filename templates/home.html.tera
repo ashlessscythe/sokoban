@@ -71,6 +71,16 @@
     </div>
 
     <script>
+      // check online status
+      window.addEventListener("online", async () => {
+        const dbIsOnline = await checkDatabaseStatus();
+        console.log("DB is online: ", dbIsOnline);
+        if (dbIsOnline) {
+          syncLocalDataWithServer();
+        }
+      });
+
+      // Function to check the database status
       document.addEventListener("DOMContentLoaded", async () => {
         updateDatabaseStatus();
 
@@ -82,8 +92,11 @@
         const dbStatus = await checkDatabaseStatus();
         updateDbStatusIndicator(dbStatus);
       }
+
       // import fn to clean input
       setInputClearTimer("#userIdInput", 3000);
+
+      // Add event listener to the form
       document
         .getElementById("punchForm")
         .addEventListener("submit", async function (event) {
@@ -188,12 +201,12 @@
         const messageDiv = document.getElementById("statusMessage");
 
         messageDiv.innerHTML = `
-        <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
-        <h2>Hello, ${userName}.
-          <p id="countdown" style="font-style: oblique 40deg;">Checking you &#8658; <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span> &#8656; : ...${timeoutSeconds}...</>
-        </h2>
-        <button class="block-button" onclick="window.location.href='/'">Cancel</button>
-    `;
+          <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
+          <h2>Hello, ${userName}.
+            <p id="countdown" style="font-style: oblique 40deg;">Checking you &#8658; <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span> &#8656; : ...${timeoutSeconds}...</>
+          </h2>
+          <button class="block-button" onclick="window.location.href='/'">Cancel</button>
+      `;
 
         const countdownElement = document.getElementById("countdown");
         let countdown = timeoutSeconds;
