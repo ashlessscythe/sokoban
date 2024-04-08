@@ -15,6 +15,13 @@
       <div class="logo-container">
         <img src="../static/images/company_logo.jpg" alt="Company Logo" />
       </div>
+      <div
+        id="db-status"
+        style="position: absolute; top: 0; right: 0; padding: 10px"
+      >
+        DB Status: <span id="db-status-text">Checking...</span>
+      </div>
+
       <div class="user-details-container">
         <form id="punchForm" class="form-container">
           <h2 id="badge-header">Scan your badge</h2>
@@ -64,6 +71,17 @@
     </div>
 
     <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        updateDatabaseStatus();
+
+        // Set interval to check DB status every minute
+        setInterval(updateDatabaseStatus, 60000);
+      });
+
+      async function updateDatabaseStatus() {
+        const dbStatus = await checkDatabaseStatus();
+        updateDbStatusIndicator(dbStatus);
+      }
       // import fn to clean input
       setInputClearTimer("#userIdInput", 3000);
       document
@@ -75,6 +93,20 @@
           const userInput = document.getElementById("userIdInput");
           const userId = extractUserId(userInput.value);
           const messageDiv = document.getElementById("statusMessage");
+
+          // check if db is online
+          const dbIsOnline = await checkDatabaseStatus();
+          if (!dbIsOnline) {
+            hideLoader();
+            storeCheckInLocally({ userId, punch_time: new Date() });
+            messageDiv.style.color = "red";
+            messageDiv.textContent =
+              "Database is offline. Check-in stored locally and will sync when online.";
+            wait(5000).then(() => {
+              window.location.reload();
+            });
+            return;
+          }
 
           try {
             const userResponse = await fetch(

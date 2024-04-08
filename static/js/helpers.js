@@ -168,3 +168,90 @@ function hideloaderContainer() {
     loader.style.display = "none";
   }
 }
+
+// wait for a specified time
+function wait(time) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, time);
+  });
+}
+
+// db functions
+async function checkDatabaseStatus() {
+  try {
+    const response = await fetch("/db-check");
+    const text = await response.text();
+    console.log("Database status:", text);
+    return text.includes("1");
+  } catch (e) {
+    console.error(e);
+    return false; // assume the database is down
+  }
+}
+
+function updateDbStatusIndicator(isOnline) {
+  const statusElement = document.getElementById("db-status-text");
+  if (isOnline) {
+    statusElement.textContent = "Online";
+    statusElement.style.color = "green";
+  } else {
+    statusElement.textContent = "Offline";
+    statusElement.style.color = "red";
+  }
+}
+
+// offline checkin
+async function performCheckIn(userData) {
+  const dbIsOnline = await checkDatabaseStatus();
+
+  if (dbIsOnline) {
+    // Proceed with normal check-in process
+    sendCheckInToServer(userData);
+  } else {
+    // Store the check-in data locally for later synchronization
+    storeCheckInLocally(userData);
+  }
+}
+
+// local checkin
+function storeCheckInLocally(checkInData) {
+  // Example using local storage; for more complex data, use IndexedDB
+  const existingData =
+    JSON.parse(localStorage.getItem("offlineCheckIns")) || [];
+  existingData.push(checkInData);
+  localStorage.setItem("offlineCheckIns", JSON.stringify(existingData));
+}
+
+// sync when back online
+window.addEventListener("online", async () => {
+  const dbIsOnline = await checkDatabaseStatus();
+
+  if (dbIsOnline) {
+    syncLocalDataWithServer();
+  }
+});
+
+async function syncLocalDataWithServer() {
+  const offlineData = JSON.parse(localStorage.getItem("offlineCheckIns")) || [];
+  for (const checkInData of offlineData) {
+    await sendCheckInToServer(checkInData);
+  }
+  localStorage.removeItem("offlineCheckIns"); // Clear the local storage after syncing
+}
+
+// send checkin to server
+async function sendCheckInToServer(checkInData) {
+  try {
+    const response = await fetch("/bulk-checkin", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(checkInData),
+    });
+    const result = await response.json();
+    console.log("Check-in result:", result);
+  } catch (error) {
+    console.error("Error sending check-in to server:", error);
+  }
+}
