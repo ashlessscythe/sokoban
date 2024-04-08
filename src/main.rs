@@ -26,6 +26,25 @@ use std::{collections::HashMap, string::ToString};
 use uuid::Uuid;
 mod func;
 
+// add db-check route
+#[get("/db-check")]
+async fn db_check(pool: &State<MyState>) -> String {
+    dotenv::dotenv().ok();
+    let simualte_db_offline = std::env::var("SIMULATE_DB_OFFLINE").is_ok();
+    println!("simualte_db_offline: {:?}", simualte_db_offline);
+
+    if simualte_db_offline {
+        return "0: Database is offline".to_string();
+    }
+    match sqlx::query("SELECT 1")
+        .fetch_one(&pool.pool)
+        .await
+    {
+        Ok(_) => "1: Database is online".to_string(),
+        Err(_) => "0: Database is offline".to_string(),
+    }
+}
+
 #[derive(FromForm)]
 struct LoginForm {
     user_token: String,
@@ -756,7 +775,7 @@ async fn main() -> Result<(), rocket::Error> {
         // .mount("/id", routes![id_list])
         .mount(
             "/",
-            routes![index, home, login, login_form, register, error_page],
+            routes![index, db_check, home, login, login_form, register, error_page],
         )
         .register("/", catchers![not_found, internal_error])
         .manage(state);
