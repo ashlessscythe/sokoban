@@ -220,31 +220,6 @@
           }
         }, 1000);
       }
-
-      async function updateStatus(status, userId) {
-        const messageDiv = document.getElementById("statusMessage");
-        let punchUrl = `/punch/${encodeURIComponent(userId)}`;
-
-        try {
-          const punchResponse = await fetch(punchUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ in_out: status }),
-          });
-
-          if (punchResponse.ok) {
-            messageDiv.innerHTML = `<p>Status updated to ${status}. Reloading...</p>`;
-            setTimeout(() => {
-              window.location.reload();
-            }, 3000);
-          } else {
-            messageDiv.innerHTML = `<p>Failed to update status. Please try again.</p>`;
-          }
-        } catch (error) {
-          console.error("Fetch error:", error);
-          messageDiv.innerHTML = `<p>Network error: Please try again later.</p>`;
-        }
-      }
     </script>
   </body>
 

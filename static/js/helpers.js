@@ -200,19 +200,6 @@ function updateDbStatusIndicator(isOnline) {
   }
 }
 
-// offline checkin
-async function performCheckIn(userData) {
-  const dbIsOnline = await checkDatabaseStatus();
-
-  if (dbIsOnline) {
-    // Proceed with normal check-in process
-    sendCheckInToServer(userData);
-  } else {
-    // Store the check-in data locally for later synchronization
-    storeCheckInLocally(userData);
-  }
-}
-
 // local checkin
 function storeCheckInLocally(checkInData) {
   // Example using local storage; for more complex data, use IndexedDB
@@ -222,29 +209,131 @@ function storeCheckInLocally(checkInData) {
   localStorage.setItem("offlineCheckIns", JSON.stringify(existingData));
 }
 
-// sync when back online
+// sync when back online (looper)
 async function syncLocalDataWithServer() {
   const offlineData = JSON.parse(localStorage.getItem("offlineCheckIns")) || [];
   for (const checkInData of offlineData) {
     console.log("syncing check-in data:", checkInData);
-    await sendCheckInToServer(checkInData);
+    try {
+      let response = await sendCheckInToServer(checkInData);
+      console.log("response from sendCheckIn is:", response);
+
+      // if response not undefined, remove from local storage
+      if (response && response.status !== 404) {
+        console.log("removing item from local storage:", checkInData);
+        // Filter out the sent item instead of splicing by index
+        const updatedOfflineData = offlineData.filter(
+          (item) => item !== checkInData
+        );
+        localStorage.setItem(
+          "offlineCheckIns",
+          JSON.stringify(updatedOfflineData)
+        );
+      } else {
+        console.log(
+          `Failed to sync data: ${response.status} ${response.statusText}`
+        );
+      }
+    } catch (error) {
+      console.error("Error sending check-in to server:", error);
+      // Do not remove anything from local storage if there's an error
+    }
   }
-  localStorage.removeItem("offlineCheckIns"); // Clear the local storage after syncing
 }
 
 // send checkin to server
 async function sendCheckInToServer(checkInData) {
+  console.log("sending checkin to server:", checkInData);
   try {
-    const response = await fetch("/bulk-checkin", {
+    // Fetch user details
+    let userResponse = await fetch(
+      `/user/${encodeURIComponent(checkInData.userId)}`
+    );
+    if (!userResponse.ok) {
+      if (userResponse.status === 400 || userResponse.status === 404) {
+        console.error("User not found.");
+        // return not found
+        return userResponse;
+      } else {
+        console.error(
+          `Error fetching user details: ${userResponse.statusText}`
+        );
+      }
+      return; // Skip to next if user not found or other error
+    }
+
+    // Get last punch details
+    let newStatus = await getLastPunchAndCalculateNewStatus(checkInData.userId);
+    if (!newStatus) return;
+
+    // Update status with no timer
+    return await updateStatus(newStatus, checkInData.userId, false);
+  } catch (error) {
+    console.error("Error during check-in process:", error);
+  }
+}
+
+// Fetch last punch details and calculate new status
+async function getLastPunchAndCalculateNewStatus(userId) {
+  let punchResponse = await fetch(
+    `/punch/${encodeURIComponent(userId)}/last_punch`
+  );
+  if (!punchResponse.ok) {
+    console.error(`Error fetching last punch: ${punchResponse.statusText}`);
+    return null;
+  }
+  let lastPunchData = await punchResponse.json();
+
+  // Calculate opposite status
+  let currentStatus = lastPunchData.in_out;
+  let newStatus = currentStatus === "In" ? "Out" : "In";
+
+  return newStatus;
+}
+
+// update status
+async function updateStatus(status, userId, showMessage = true) {
+  const messageDiv = document.getElementById("statusMessage");
+  let punchUrl = `/punch/${encodeURIComponent(userId)}`;
+
+  try {
+    let punchResponse = await fetch(punchUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(checkInData),
+      body: JSON.stringify({ in_out: status }),
     });
-    const result = await response.json();
-    console.log("Check-in result:", result);
+
+    if (punchResponse.ok) {
+      if (showMessage) {
+        messageDiv.textContent = `Status updated to ${status}`;
+        await wait(2000);
+        messageDiv.textContent = "";
+        window.location.reload();
+      } else {
+        console.log(`Status updated to ${status}`);
+      }
+      let responseData = await punchResponse.json();
+      return responseData;
+    } else {
+      if (showMessage) {
+        messageDiv.textContent = `Failed to update status: ${punchResponse.statusText}`;
+        await wait(2000);
+        messageDiv.textContent = "";
+      } else {
+        console.error(`Failed to update status: ${punchResponse.statusText}`);
+      }
+      throw new Error(`Failed to update status: ${punchResponse.statusText}`);
+    }
   } catch (error) {
-    console.error("Error sending check-in to server:", error);
+    if (showMessage) {
+      messageDiv.textContent = `Network error during status update: ${error}`;
+      await wait(2000);
+      messageDiv.textContent = "";
+    } else {
+      console.error("Network error during status update:", error);
+    }
+    throw error;
   }
 }
