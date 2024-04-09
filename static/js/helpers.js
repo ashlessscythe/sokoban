@@ -176,16 +176,33 @@ function wait(time) {
   });
 }
 
+// This will keep track of the last known DB status
+let dbWasOffline = false;
+
 // db functions
 async function checkDatabaseStatus() {
   try {
     const response = await fetch("/db-check");
-    const text = await response.text();
-    console.log("Database status:", text);
-    return text.includes("1");
+    const isOnline = response.ok && (await response.text()).includes("1");
+
+    console.log("Checking Database status:", isOnline ? "Online" : "Offline");
+
+    // If the database was offline last time we checked and is now online, trigger a sync
+    if (dbWasOffline && isOnline) {
+      await syncLocalDataWithServer(); // Ensure this function exists and correctly handles the sync
+      dbWasOffline = false; // Reset the flag after syncing
+    }
+
+    // If the database is offline, set the flag
+    if (!isOnline) {
+      dbWasOffline = true;
+    }
+
+    return isOnline;
   } catch (e) {
     console.error(e);
-    return false; // assume the database is down
+    dbWasOffline = true; // assume the database is down and set the flag
+    return false;
   }
 }
 
@@ -336,4 +353,11 @@ async function updateStatus(status, userId, showMessage = true) {
     }
     throw error;
   }
+}
+
+// register service worker
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.register("static/js/service-worker.js").then(() => {
+    console.log("Service Worker Registered");
+  });
 }
