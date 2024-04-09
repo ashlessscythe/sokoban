@@ -284,7 +284,11 @@ async function sendCheckInToServer(checkInData) {
     if (!newStatus) return;
 
     // Update status with no timer
-    return await updateStatus(newStatus, checkInData.userId, false);
+    return await updateStatus(
+      newStatus,
+      checkInData.userId,
+      (showMessage = false)
+    );
   } catch (error) {
     console.error("Error during check-in process:", error);
   }
@@ -312,6 +316,7 @@ async function getLastPunchAndCalculateNewStatus(userId) {
 async function updateStatus(status, userId, showMessage = true) {
   const messageDiv = document.getElementById("statusMessage");
   let punchUrl = `/punch/${encodeURIComponent(userId)}`;
+  device_id = localStorage.getItem("device_id");
 
   try {
     let punchResponse = await fetch(punchUrl, {
@@ -319,7 +324,7 @@ async function updateStatus(status, userId, showMessage = true) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ in_out: status }),
+      body: JSON.stringify({ device_id: device_id, in_out: status }),
     });
 
     if (punchResponse.ok) {

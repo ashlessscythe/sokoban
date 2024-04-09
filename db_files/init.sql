@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS punches (
   id SERIAL PRIMARY KEY,
   user_id VARCHAR(36) REFERENCES users(user_id),
   in_out punch NOT NULL,
+  device_id VARCHAR(255) DEFAULT NULL,
   punch_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

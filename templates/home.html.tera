@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <title>Home</title>
     <link rel="stylesheet" href="../static/css/style.css" />
+    <script src="https://openfpcdn.io/fingerprintjs/v3"></script>
     <script src="../static/js/helpers.js"></script>
+    <script src="../static/js/fingerprint.js"></script>
   </head>
   <body>
     <!-- Loader Container, initially hidden -->
@@ -82,7 +84,12 @@
 
       // Function to check the database status
       document.addEventListener("DOMContentLoaded", async () => {
+        console.log("DOM loaded");
+        // fingerprint
+        storeDeviceId();
+        console.log("Device ID stored");
         updateDatabaseStatus();
+        console.log("DB status updated");
 
         // Set interval to check DB status every minute
         setInterval(updateDatabaseStatus, 60000);

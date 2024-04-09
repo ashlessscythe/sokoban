@@ -626,24 +626,27 @@ async fn add(data: Json<User>, state: &State<MyState>) -> Result<Json<User>, Bad
 }
 
 // punch user in or out
-#[post("/<id>", data = "<data>")]
+#[post("/<user_id>", data = "<punch_data>")]
 async fn punch(
-    id: String,
-    data: Json<PunchRecord>,
+    user_id: String,
+    punch_data: Json<PunchRecord>,
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
-    // insert punch into db
-    let punch = sqlx::query_as::<Postgres, PunchRecord>(
-        "INSERT INTO punches (user_id, in_out) VALUES ($1, $2) RETURNING *",
+    let device_id = punch_data.device_id.as_deref().unwrap_or("No-Device-Id"); // or use a default value that makes sense in your context
+
+    let punch = sqlx::query_as::<_, PunchRecord>(
+        "INSERT INTO punches (user_id, in_out, device_id) VALUES ($1, $2, $3) RETURNING *",
     )
-    .bind(id)
-    .bind(&data.in_out)
+    .bind(&user_id)
+    .bind(&punch_data.in_out)
+    .bind(device_id)
     .fetch_one(&state.pool)
     .await
     .map_err(|e| BadRequest(e.to_string()))?;
 
     Ok(Json(punch))
 }
+
 
 // get number of punches for user
 #[get("/<id>/count")]
@@ -676,6 +679,7 @@ async fn last_punch(
         Ok(Some(punch)) => Ok(Json(punch)),
         Ok(None) => Ok(Json(PunchRecord {
             in_out: InOut::None,
+            device_id: None,
             punch_time: None,
         })),
         Err(e) => Err(BadRequest(e.to_string())),
@@ -803,12 +807,14 @@ enum InOut {
 struct PunchWithUser {
     user_name: String,
     in_out: InOut,
+    device_id: Option<String>,
     punch_time: Option<NaiveDateTime>,
 }
 
 #[derive(FromRow, Serialize, Deserialize)]
 struct PunchRecord {
     in_out: InOut,
+    device_id: Option<String>,
     punch_time: Option<NaiveDateTime>,
 }
 
