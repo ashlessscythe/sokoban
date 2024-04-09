@@ -176,20 +176,24 @@ function wait(time) {
   });
 }
 
+// db functions
+
 // This will keep track of the last known DB status
 let dbWasOffline = false;
 
-// db functions
 async function checkDatabaseStatus() {
   try {
-    const response = await fetch("/db-check");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch("/db-check", { signal: controller.signal });
     const isOnline = response.ok && (await response.text()).includes("1");
 
     console.log("Checking Database status:", isOnline ? "Online" : "Offline");
 
     // If the database was offline last time we checked and is now online, trigger a sync
     if (dbWasOffline && isOnline) {
-      await syncLocalDataWithServer(); // Ensure this function exists and correctly handles the sync
+      await syncCheckIns(); // Ensure this function exists and correctly handles the sync
       dbWasOffline = false; // Reset the flag after syncing
     }
 
@@ -198,6 +202,7 @@ async function checkDatabaseStatus() {
       dbWasOffline = true;
     }
 
+    clearTimeout(timeoutId);
     return isOnline;
   } catch (e) {
     console.error(e);
@@ -214,83 +219,6 @@ function updateDbStatusIndicator(isOnline) {
   } else {
     statusElement.textContent = "Offline";
     statusElement.style.color = "red";
-  }
-}
-
-// local checkin
-function storeCheckInLocally(checkInData) {
-  // Example using local storage; for more complex data, use IndexedDB
-  const existingData =
-    JSON.parse(localStorage.getItem("offlineCheckIns")) || [];
-  existingData.push(checkInData);
-  localStorage.setItem("offlineCheckIns", JSON.stringify(existingData));
-}
-
-// sync when back online (looper)
-async function syncLocalDataWithServer() {
-  const offlineData = JSON.parse(localStorage.getItem("offlineCheckIns")) || [];
-  for (const checkInData of offlineData) {
-    console.log("syncing check-in data:", checkInData);
-    try {
-      let response = await sendCheckInToServer(checkInData);
-      console.log("response from sendCheckIn is:", response);
-
-      // if response not undefined, remove from local storage
-      if (response && response.status !== 404) {
-        console.log("removing item from local storage:", checkInData);
-        // Filter out the sent item instead of splicing by index
-        const updatedOfflineData = offlineData.filter(
-          (item) => item !== checkInData
-        );
-        localStorage.setItem(
-          "offlineCheckIns",
-          JSON.stringify(updatedOfflineData)
-        );
-      } else {
-        console.log(
-          `Failed to sync data: ${response.status} ${response.statusText}`
-        );
-      }
-    } catch (error) {
-      console.error("Error sending check-in to server:", error);
-      // Do not remove anything from local storage if there's an error
-    }
-  }
-}
-
-// send checkin to server
-async function sendCheckInToServer(checkInData) {
-  console.log("sending checkin to server:", checkInData);
-  try {
-    // Fetch user details
-    let userResponse = await fetch(
-      `/user/${encodeURIComponent(checkInData.userId)}`
-    );
-    if (!userResponse.ok) {
-      if (userResponse.status === 400 || userResponse.status === 404) {
-        console.error("User not found.");
-        // return not found
-        return userResponse;
-      } else {
-        console.error(
-          `Error fetching user details: ${userResponse.statusText}`
-        );
-      }
-      return; // Skip to next if user not found or other error
-    }
-
-    // Get last punch details
-    let newStatus = await getLastPunchAndCalculateNewStatus(checkInData.userId);
-    if (!newStatus) return;
-
-    // Update status with no timer
-    return await updateStatus(
-      newStatus,
-      checkInData.userId,
-      (showMessage = false)
-    );
-  } catch (error) {
-    console.error("Error during check-in process:", error);
   }
 }
 
@@ -364,5 +292,127 @@ async function updateStatus(status, userId, showMessage = true) {
 if (navigator.serviceWorker) {
   navigator.serviceWorker.register("static/js/service-worker.js").then(() => {
     console.log("Service Worker Registered");
+  });
+}
+
+// local sync stuff
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("checkInDatabase", 1);
+
+    request.onupgradeneeded = function (event) {
+      const db = event.target.result;
+      db.createObjectStore("checkIns", { keyPath: "id", autoIncrement: true });
+    };
+
+    request.onerror = function (event) {
+      reject("Database error: " + event.target.errorCode);
+    };
+
+    request.onsuccess = function (event) {
+      resolve(event.target.result);
+    };
+  });
+}
+
+async function storeInLocalDb(checkInData) {
+  const db = await openDatabase();
+  const transaction = db.transaction(["checkIns"], "readwrite");
+  const store = transaction.objectStore("checkIns");
+
+  return new Promise((resolve, reject) => {
+    const request = store.add(checkInData);
+    request.onsuccess = function () {
+      resolve();
+    };
+    request.onerror = function (event) {
+      reject("Error storing check-in: " + event.target.errorCode);
+    };
+  });
+}
+
+async function readCheckIns() {
+  const db = await openDatabase();
+  const transaction = db.transaction(["checkIns"], "readonly");
+  const store = transaction.objectStore("checkIns");
+
+  return new Promise((resolve, reject) => {
+    const request = store.getAll();
+    request.onsuccess = function (event) {
+      resolve(event.target.result);
+    };
+    request.onerror = function (event) {
+      reject("Error reading check-ins: " + event.target.errorCode);
+    };
+  });
+}
+
+async function syncCheckIns() {
+  const checkIns = await readCheckIns();
+
+  for (const checkIn of checkIns) {
+    try {
+      // Perform server sync logic here
+      console.log("Syncing check-in:", checkIn);
+      await sendCheckIn(checkIn);
+
+      // If successful, remove the check-in from IndexedDB
+      await removeCheckInFromDB(checkIn);
+      console.log("Successfully synced and removed check-in:", checkIn);
+    } catch (error) {
+      console.error("Failed to sync check-in:", checkIn, "Error:", error);
+    }
+  }
+}
+
+async function sendCheckIn(checkInData) {
+  console.log("sending checkin to server:", checkInData);
+  try {
+    // Fetch user details
+    let userResponse = await fetch(
+      `/user/${encodeURIComponent(checkInData.userId)}`
+    );
+    if (!userResponse.ok) {
+      if (userResponse.status === 400 || userResponse.status === 404) {
+        console.error("User not found.");
+        // return not found
+        return userResponse;
+      } else {
+        console.error(
+          `Error fetching user details: ${userResponse.statusText}`
+        );
+      }
+      return; // Skip to next if user not found or other error
+    }
+
+    // Get last punch details
+    let newStatus = await getLastPunchAndCalculateNewStatus(checkInData.userId);
+    if (!newStatus) return;
+
+    // Update status with no timer
+    return await updateStatus(
+      newStatus,
+      checkInData.userId,
+      (showMessage = false)
+    );
+  } catch (error) {
+    console.error("Error during check-in process:", error);
+  }
+}
+
+async function removeCheckInFromDB(checkIn) {
+  const db = await openDatabase();
+  const transaction = db.transaction(["checkIns"], "readwrite");
+  const store = transaction.objectStore("checkIns");
+
+  console.log("Removing check-in from IndexedDB:", checkIn);
+  return new Promise((resolve, reject) => {
+    const request = store.delete(checkIn.id);
+    request.onsuccess = function () {
+      resolve();
+    };
+    request.onerror = function (event) {
+      reject("Error removing check-in: " + event.target.errorCode);
+    };
   });
 }

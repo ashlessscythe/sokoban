@@ -78,7 +78,7 @@
         const dbIsOnline = await checkDatabaseStatus();
         console.log("DB is online: ", dbIsOnline);
         if (dbIsOnline) {
-          syncLocalDataWithServer();
+          syncCheckIns();
         }
       });
 
@@ -92,7 +92,7 @@
         console.log("DB status updated");
 
         // Set interval to check DB status every minute
-        setInterval(updateDatabaseStatus, 60000);
+        setInterval(updateDatabaseStatus, 30000);
       });
 
       async function updateDatabaseStatus() {
@@ -118,7 +118,7 @@
           const dbIsOnline = await checkDatabaseStatus();
           if (!dbIsOnline) {
             hideLoader();
-            storeCheckInLocally({ userId, punch_time: new Date() });
+            storeInLocalDb({ userId, punch_time: new Date() });
             messageDiv.style.color = "red";
             messageDiv.textContent =
               "Database is offline. Check-in stored locally and will sync when online.";
