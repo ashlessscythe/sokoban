@@ -210,7 +210,7 @@
         messageDiv.innerHTML = `
           <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
           <h2>Hello, ${userName}.
-            <p id="countdown" style="font-style: oblique 40deg;">Checking you &#8658; <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span> &#8656; : ...${timeoutSeconds}...</>
+            <p id="countdown" style="font-style: oblique 40deg;">Please wait... checking you &#8658; ${oppositeStatus}: ...${timeoutSeconds}...</>
           </h2>
           <button class="block-button" onclick="window.location.href='/'">Cancel</button>
       `;
@@ -219,7 +219,7 @@
         let countdown = timeoutSeconds;
         const interval = setInterval(() => {
           countdown -= 1;
-          countdownElement.innerHTML = `Checking you &#8658; <span style="border: 2px solid black; padding: 5px;">${oppositeStatus}</span> &#8656; : ...${countdown}...`;
+          countdownElement.innerHTML = `Please wait... checking you &#8658; ${oppositeStatus}: ...${countdown}...`;
 
           if (countdown <= 0) {
             clearInterval(interval);
