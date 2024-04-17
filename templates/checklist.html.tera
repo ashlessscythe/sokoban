@@ -30,7 +30,7 @@
         />
       </button>
       <h1>Checklist</h1>
-      <button class="refresh-button" onclick="location.reload()">
+      <button class="refresh-button" onclick="callReload()">
         Refresh List
       </button>
     </div>
@@ -116,6 +116,12 @@
   console.log(
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
+
+  // reload with toast
+  function callReload() {
+    location.reload();
+    displaySuccessToast("List refreshed");
+  }
 
   // send update for single table row
   function sendUpdateRow(event) {
