@@ -51,9 +51,10 @@
             <th>
               Found
               <div style="font-size: smaller; color: gray">
-                (not working yet)
+                (in testing phase)
               </div>
             </th>
+            <th>Update</th>
           </tr>
         </thead>
         <tbody id="table-body">
@@ -69,8 +70,21 @@
                 data-user-id="{{ user_status.temp_id }}"
                 data-user-name="{{ user_status.name }}"
                 class="status-checkbox"
-                {% if user_status.found %}checked{% endif %}
+                {%
+                if
+                user_status.found
+                %}checked{%
+                endif
+                %}
               />
+            </td>
+            <td>
+              <button
+                class="centered-button"
+                type="button"
+                onclick="sendUpdateRow(event)"
+              >Set Status 
+              </button>
             </td>
           </tr>
           {% endfor %}
@@ -82,12 +96,9 @@
           </div>
         </tbody>
       </table>
-      <div id="message-container"></div>
     </div>
-    <div class="update-button-contaner">
-      <button class="centered-button" type="button" onclick="sendUpdates()">
-        Push Update
-      </button>
+      <div style="display: flex; justify-content: center; align-items: center;" id="message-container"></div>
+      <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
     </div>
     <button
       class="block-button"
@@ -106,13 +117,39 @@
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
 
+  // send update for single table row
+  function sendUpdateRow(event) {
+    // Determine the row where the button was clicked
+    const row = event.target.closest("tr");
+    const checkbox = row.querySelector(".status-checkbox");
+    const userId = checkbox.dataset.userId;
+    const userName = checkbox.dataset.userName;
+    const found = checkbox.checked;
+
+    // Call your existing sendUpdate function with the correct parameters
+    sendUpdate(userId, found, name)
+      .then((response) => {
+        if (response && response.ok) {
+          console.log(`Update successful for user ID: ${userName}`);
+          displaySuccessToast(`Update successful for user ID: ${userName}`);
+        } else {
+          console.error(`Failed to update for user ID: ${userName}`);
+          displayErrorMessage(`Failed to update for user ID: ${userName}`);
+        }
+      })
+      .catch((error) => {
+        console.error("Error updating user status", error);
+        displayErrorMessage("Error updating user status");
+      });
+  }
+
   // Iterate and add event listener to each checkbox
   async function sendUpdates() {
     const checkboxes = document.querySelectorAll(".status-checkbox");
     for (const checkbox of checkboxes) {
       const userId = checkbox.dataset.userId;
       const found = checkbox.checked; // true if checked, false if not
-      const userName = checkbox.dataset.userName; 
+      const userName = checkbox.dataset.userName;
       const response = await sendUpdate(userId, found, name);
 
       if (response.ok) {
@@ -140,6 +177,21 @@
     }, 2000); // Remove after 2 seconds
   }
 
+  function displaySuccessToast(message) {
+    const toastContainer = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+
+    // Append the toast to the container
+    toastContainer.appendChild(toast);
+
+    // Automatically remove the toast after 4 seconds
+    setTimeout(() => {
+      toastContainer.removeChild(toast);
+    }, 4000);
+  }
+
   // Function to display an error message (similar to the success message)
   function displayErrorMessage(message) {
     // Implement similar to displaySuccessMessage
@@ -154,6 +206,22 @@
       messageContainer.removeChild(errorMessageElement);
     }, 2000); // Remove after 2 seconds
   }
+
+  function displayErrorToast(message) {
+    const toastContainer = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+
+    // Append the toast to the container
+    toastContainer.appendChild(toast);
+
+    // Automatically remove the toast after 4 seconds
+    setTimeout(() => {
+      toastContainer.removeChild(toast);
+    }, 4000);
+  }
+
   // send update to server
   async function sendUpdate(userId, found, userName) {
     const url = "/status/update-found-status";
@@ -328,4 +396,18 @@
   .iso-date {
     white-space: nowrap; /* Prevents wrapping */
   }
+  .toast {
+  background-color: #04AA6D; /* Green background */
+  color: white; /* White text color */
+  padding: 16px; /* Some padding */
+  border-radius: 8px; /* Rounded corners */
+  margin-top: 10px; /* Space between toasts */
+  animation: fadeinout 4s;
+}
+
+@keyframes fadeinout {
+  0%, 100% { opacity: 0; }
+  10%, 90% { opacity: 1; }
+}
+
 </style>
