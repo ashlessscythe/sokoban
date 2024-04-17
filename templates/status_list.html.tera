@@ -51,12 +51,6 @@
             <td class="iso-date">{{ user_status.last_punch_time }}</td>
           </tr>
           {% endfor %}
-          <div
-            id="scroll-arrow"
-            style="display: none; position: fixed; bottom: 10px; right: 10px"
-          >
-            <img src="../static/images/scroll_arrow.png" alt="Scroll down" />
-          </div>
         </tbody>
       </table>
     </div>
@@ -72,30 +66,9 @@
 
 <script>
   startInactivityTimer(60000);
-  setNumberOfRows(15);
   console.log(
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
-
-  // Function to control the number of rows
-  function setNumberOfRows(numRows) {
-    var tableBody = document.getElementById("table-body");
-    while (tableBody.rows.length > numRows) {
-      tableBody.deleteRow(numRows);
-    }
-  }
-  function setNumberOfRows(numRows) {
-    var tableBody = document.getElementById("table-body");
-    var scrollArrow = document.getElementById("scroll-arrow");
-    while (tableBody.rows.length > numRows) {
-      tableBody.deleteRow(numRows);
-    }
-    if (tableBody.rows.length > numRows) {
-      scrollArrow.style.display = "block";
-    } else {
-      scrollArrow.style.display = "none";
-    }
-  }
 </script>
 
 <style>
