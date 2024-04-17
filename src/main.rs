@@ -48,6 +48,7 @@ async fn db_check(pool: &State<MyState>) -> String {
 #[derive(FromForm)]
 struct LoginForm {
     user_token: String,
+    device_id: String,
 }
 
 #[derive(Serialize)]
@@ -65,9 +66,10 @@ async fn login(
 ) -> Result<Json<LoginResponse>, Custom<String>> {
     // In a real-world scenario, validate the user_token against your data store
     println!("login form {:?}", login_form.user_token);
-    if is_valid_token(&login_form.user_token, state).await {
+    if is_valid_token(&login_form.user_token, &login_form.device_id, state).await {
         println!("cloning cookie {}", &login_form.user_token);
         cookies.add_private(Cookie::new("user_token", login_form.user_token.clone()));
+        cookies.add_private(Cookie::new("device_id", login_form.device_id.clone()));
         Ok(Json(LoginResponse {
             success: true,
             message: "Login successful".to_string(),
@@ -107,9 +109,13 @@ impl<'r> FromRequest<'r> for Authenticated {
 
         let cookies = req.cookies();
 
-        if let Some(cookie) = cookies.get_private("user_token") {
-            if is_valid_token(cookie.value(), db_pool.into()).await {
-                rocket::request::Outcome::Success(Authenticated)
+        if let Some(user_token_cookie) = cookies.get_private("user_token") {
+            if let Some(device_id_cookie) = cookies.get_private("device_id") {
+                if is_valid_token(user_token_cookie.value(), device_id_cookie.value(), db_pool.into()).await {
+                    rocket::request::Outcome::Success(Authenticated)
+                } else {
+                    rocket::request::Outcome::Error((Status::Unauthorized, ()))
+                }
             } else {
                 rocket::request::Outcome::Error((Status::Unauthorized, ()))
             }
@@ -119,7 +125,7 @@ impl<'r> FromRequest<'r> for Authenticated {
     }
 }
 
-async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
+async fn is_valid_token(token: &str, device_id: &str, state: &State<MyState>) -> bool {
     // Check if the token matches the static value first
     if token == "mysecrettoken" {
         println!("Token matched the static secret token.");
@@ -128,16 +134,22 @@ async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
 
     println!("Looking for token: {}", token);
     // Proceed with the database check if it's not the static token
-    let result = sqlx::query("SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1)")
+    let user_exists = sqlx::query("SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1)")
         .bind(token)
         .fetch_one(&state.pool)
         .await;
 
-    // return boolean true if token exists in db
-    match result {
-        Ok(row) => row.get(0),
-        Err(e) => {
-            eprintln!("Failed to check token: {:?}", e);
+    println!("Looking for device_id: {}", device_id);
+    let device_exists = sqlx::query("SELECT EXISTS(SELECT 1 FROM auth_devices WHERE device_id = $1)")
+        .bind(device_id)
+        .fetch_one(&state.pool)
+        .await;
+
+    // return boolean true if token exists in db and device_id exists in auth_devices
+    match (user_exists, device_exists) {
+        (Ok(user_row), Ok(device_row)) => user_row.get(0) && device_row.get(0),
+        (Err(e), _) | (_, Err(e)) => {
+            eprintln!("Failed to check token or device_id: {:?}", e);
             false
         }
     }
@@ -181,7 +193,7 @@ async fn id_list(
         }
         None => {
             // User is not authenticated, provide a message and render the login form.
-            Err(BadRequest("You are not authenticated.".to_string()))
+            Err(BadRequest("User or device not authenticated.".to_string()))
         }
     }
 }
@@ -214,7 +226,7 @@ async fn userlist(
             // User is not authenticated, provide a message and render the login form.
             println!("user is not authenticated");
             let mut ctx = HashMap::new();
-            ctx.insert("message", "You are not authenticated.");
+            ctx.insert("message", "User or device not authenticated.");
             println!(
                 "attempting to load login with message {}",
                 ctx.get("message").unwrap_or(&"Unknown error") // Use `unwrap_or` to avoid panicking.
@@ -239,7 +251,7 @@ async fn status_list(
         None => {
             // User is not authenticated, provide a message and render the login form.
             let mut ctx = HashMap::new();
-            ctx.insert("message", "You are not authenticated.");
+            ctx.insert("message", "User or device not authenticated.");
             Ok(Template::render("loginform", &ctx)) // Ensure you return `Ok` here.
         }
     }
@@ -342,7 +354,7 @@ async fn checklist(
         None => {
             // User is not authenticated, provide a message and render the login form.
             let mut ctx = HashMap::new();
-            ctx.insert("message", "You are not authenticated.");
+            ctx.insert("message", "User or device not authenticated.");
             Ok(Template::render("loginform", &ctx)) // Ensure you return `Ok` here.
         }
     }

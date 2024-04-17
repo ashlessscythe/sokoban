@@ -4,6 +4,7 @@
     <title>Simple Login</title>
     <link rel="stylesheet" href="../static/css/style.css" />
     <script src="../static/js/helpers.js"></script>
+    <script src="../static/js/fingerprint.js"></script>
   </head>
   <body>
     <form id="loginForm" class="form-container" action="/login" method="post">
@@ -34,11 +35,14 @@
       event.preventDefault();
       const inputField = document.getElementById("user_token");
       const userToken = extractUserId(inputField.value);
+      const device_id = localStorage.getItem("device_id");
 
       const response = await fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `user_token=${encodeURIComponent(userToken)}`,
+        body: `user_token=${encodeURIComponent(
+          userToken
+        )}&device_id=${device_id}`,
       });
 
       const statusMessage = document.getElementById("statusMessage");

@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <title>Home</title>
     <link rel="stylesheet" href="../static/css/style.css" />
-    <script src="https://openfpcdn.io/fingerprintjs/v3"></script>
     <script src="../static/js/helpers.js"></script>
     <script src="../static/js/fingerprint.js"></script>
   </head>

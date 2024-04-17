@@ -57,6 +57,14 @@ CREATE TABLE IF NOT EXISTS checklist_status (
   UNIQUE(user_id, drill_id) -- Add this line to create the composite unique constraint
 );
 
+-- auth devices table
+CREATE TABLE IF NOT EXISTS auth_devices (
+  id SERIAL PRIMARY KEY,
+  device_id VARCHAR(255) NOT NULL,
+  device_name VARCHAR(255) Default 'No Name',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- add relations bossId relates to user_id in users table
 -- Check if the foreign key does not exist before adding it.
 DO $$ BEGIN
