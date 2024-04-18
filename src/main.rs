@@ -731,11 +731,34 @@ fn home() -> Result<Template, BadRequest<String>> {
 }
 
 // register route
-#[get("/register")]
-fn register() -> Result<Template, BadRequest<String>> {
+#[get("/")]
+fn register_get() -> Result<Template, BadRequest<String>> {
     let mut context = HashMap::new();
     context.insert("title", "Register");
     Ok(Template::render("register", &context))
+}
+
+// post register route
+#[post("/", data = "<data>")]
+async fn register_post(
+    data: Json<RegisterRequest>,
+    state: &State<MyState>,
+) -> Result<Json<RegisterRequest>, BadRequest<String>> {
+    println!("Name: {}, Email: {}, Device ID: {}", data.name, data.email, data.device_id);
+    let reg = sqlx::query_as::<_, RegisterRequest>(
+        "INSERT INTO registrations (name, email, device_id) VALUES ($1, $2, $3) RETURNING *",
+    )
+    .bind(&data.name)
+    .bind(&data.email)
+    .bind(&data.device_id)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to register: {:?}", e);
+        BadRequest(format!("db error: {}", e.to_string()))
+    })?;
+
+    Ok(Json(reg))
 }
 
 // routes
@@ -787,11 +810,12 @@ async fn main() -> Result<(), rocket::Error> {
         // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
         .mount("/punch", routes![punch, last_punch, count_punches, get_user_punches])
         .mount("/status", routes![status_list, checklist, update_found_status])
+        .mount("/register", routes![register_get, register_post])
         .mount("/static", FileServer::from(static_files_dir))
         // .mount("/id", routes![id_list])
         .mount(
             "/",
-            routes![index, db_check, home, login, login_form, register, error_page],
+            routes![index, db_check, home, login, login_form, error_page],
         )
         .register("/", catchers![not_found, internal_error])
         .manage(state);
@@ -891,4 +915,12 @@ struct FoundStatusUpdate {
     user_id: String,
     drill_id: Option<i32>,
     found: bool,
+}
+
+// struct for registration req
+#[derive(serde::Deserialize, Serialize, FromRow, Debug)]
+struct RegisterRequest {
+    name: String,
+    email: String,
+    device_id: String,
 }
