@@ -5,6 +5,7 @@
     <title>Register</title>
     <link rel="stylesheet" href="../static/css/style.css" />
     <script src="../static/js/helpers.js"></script>
+    <script src="../static/js/fingerprint.js"></script>
   </head>
   <body>
     <h1>Register</h1>
@@ -29,8 +30,6 @@
     <!-- More forms or buttons to interact with other API endpoints -->
 
     <script>
-      setInputClearTimer("#name", 3000, (fieldFocus = false));
-      setInputClearTimer("#email", 3000, (fieldFocus = false));
       startInactivityTimer(10000);
       // Handle sending POST request
       const form = document.querySelector("form");
@@ -38,13 +37,14 @@
         event.preventDefault();
         const name = form.elements["name"].value;
         const email = form.elements["email"].value;
+        const device_id = await getDeviceId();
 
-        const response = await fetch("/user", {
+        const response = await fetch("/register", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ name, email }),
+          body: JSON.stringify({ name, email, device_id }),
         });
 
         if (response.ok) {
@@ -52,14 +52,13 @@
           const newUser = await response.json();
           // display message to the user
           const statusMessage = document.getElementById("statusMessage");
-          statusMessage.textContent = `User ${newUser.name} created. Redirecting to home...`;
-          console.log(`User ${newUser.user_id} created.`);
+          statusMessage.textContent = `Registration for ${newUser.name} requested. Admin notified. Redirecting to home...`;
           // lock fields and button
           form.elements[("name", "email")].disabled = true;
           // redirect home after 3 seconds
           setTimeout(() => {
             window.location.href = "/home";
-          }, 3000);
+          }, 5000);
           form.reset();
         } else {
           console.error("Failed to create user:", response.statusText);

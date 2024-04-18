@@ -65,6 +65,15 @@ CREATE TABLE IF NOT EXISTS auth_devices (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- registrations table
+CREATE TABLE IF NOT EXISTS registrations (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(36) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  device_id VARCHAR(255) DEFAULT 'No Device ID',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- add relations bossId relates to user_id in users table
 -- Check if the foreign key does not exist before adding it.
 DO $$ BEGIN
