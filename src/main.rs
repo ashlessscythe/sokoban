@@ -21,7 +21,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::postgres::Postgres;
 use sqlx::{FromRow, PgPool, Row};
 
-use std::{collections::HashMap, string::ToString};
+use std::{collections::{HashMap, HashSet}, string::ToString};
+use std::iter::FromIterator;
 
 use uuid::Uuid;
 mod func;
@@ -360,6 +361,12 @@ async fn checklist(
     }
 }
 
+#[derive(Serialize)]
+struct ContextData {
+    user_statuses: Vec<UserChecklistDisplay>,
+    unique_departments: Vec<String>,
+}
+
 // get users that are currently in
 async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
     let template_name = "checklist";
@@ -461,10 +468,24 @@ async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
         })
         .collect();
 
+    // get unique departments
+    let unique_departments_set: HashSet<_> = formatted_user_statuses
+        .iter()
+        .map(|us| us.dept_name.clone())
+        .collect();
+    
+    // convert to Vec for tera
+    let unique_departments: Vec<String> = Vec::from_iter(unique_departments_set);
+
+    // craete context
+    let context_data = ContextData {
+        user_statuses: formatted_user_statuses,
+        unique_departments,
+    };
+
     // Finally, create the context and render the template
     println!("template_name: {:?}", template_name);
-    let context = context! { user_statuses: formatted_user_statuses };
-    Ok(Template::render(template_name, context))
+    Ok(Template::render(template_name, &context_data))
 }
 
 // build hashmap of ids from user table

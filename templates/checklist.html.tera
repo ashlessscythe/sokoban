@@ -7,7 +7,7 @@
     <script src="../static/js/helpers.js"></script>
   </head>
   <body>
-    <div style="display: flex; align-items: center">
+    <div class="table-title" style="display: flex; align-items: center">
       <button
         class="circle-button"
         onclick="location.href='/home'"
@@ -30,6 +30,13 @@
         />
       </button>
       <h1>Checklist</h1>
+      <!-- Dropdown for filtering by department -->
+      <select class="departmentFilter" id="departmentFilter" onchange="filterByDepartment()">
+        <option value="">All Departments</option>
+        {% for dept_name in unique_departments %}
+          <option value="{{ dept_name }}">{{ dept_name }}</option>
+        {% endfor %}
+      </select>
       <button class="refresh-button" onclick="callReload()">
         Refresh List
       </button>
@@ -109,6 +116,21 @@
   console.log(
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
+
+  // for drop-down
+  function filterByDepartment() {
+    const selectedDepartment = document.getElementById('departmentFilter').value;
+    const tableRows = document.getElementById('table-body').rows;
+
+    for (let i = 0; i < tableRows.length; i++) {
+      const deptCell = tableRows[i].cells[1]; // Assuming department is the second cell
+      if (selectedDepartment === "" || deptCell.textContent === selectedDepartment) {
+        tableRows[i].style.display = ""; // Show row
+      } else {
+        tableRows[i].style.display = "none"; // Hide row
+      }
+    }
+  }
 
   // reload with toast
   function callReload() {
@@ -390,5 +412,68 @@
   0%, 100% { opacity: 0; }
   10%, 90% { opacity: 1; }
 }
+
+/* Style for the container div */
+.table-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* This will space the children evenly */
+  padding: 20px; /* Add some padding around */
+  flex-wrap: wrap; /* If you want the items to wrap on small screens */
+}
+
+/* Style for the buttons and dropdown for consistent sizing */
+/* .table-title > button, */
+.table-title > select,
+.table-title > .title {
+  margin: 0 10px; /* Adds margin to left and right for spacing */
+  padding: 10px; /* Padding inside buttons and dropdown */
+  flex: 1; /* Allows items to grow */
+  text-align: center; /* Center the text inside (if it's one line) */
+}
+
+/* If you have a title or something similar, you might not want it to grow like buttons */
+.table-title > .title {
+  flex: none; /* Prevents the title from growing and only takes up necessary space */
+}
+
+/* Further style your select (dropdown) element if needed */
+.table-title > select {
+  cursor: pointer; /* To indicate it's a dropdown */
+}
+
+/* Add additional styling for buttons if necessary */
+.table-title > button {
+  cursor: pointer; /* Indicates the element is clickable */
+  border: 1px solid #ccc; /* Adds a border */
+  background-color: #f8f8f8; /* Adds a background color */
+}
+
+/* Styling for the filter dropdown */
+select #departmentFilter {
+  width: 200px; /* Set the width as per your preference */
+  font-size: 1.2em; /* Larger text for better readability */
+  padding: 10px 15px; /* Adjust padding to make the dropdown taller and text more centered */
+  margin: 0 10px; /* Maintain some space around the dropdown */
+  border: 1px solid #ddd; /* Border to match the overall design */
+  border-radius: 5px; /* Rounded corners for modern look */
+  cursor: pointer; /* Change cursor on hover to signify this is a dropdown */
+}
+
+/* You may also want to style the option elements */
+select #departmentFilter option {
+  font-size: 1.2em; /* Ensure the options text is also larger */
+}
+
+
+/* Responsive behavior for smaller screens */
+@media (max-width: 768px) {
+  .table-title > button,
+  /* .table-title > select, */
+  .table-title > .title {
+    margin: 5px 0; /* Stack them with vertical space on small screens */
+  }
+}
+
 
 </style>
