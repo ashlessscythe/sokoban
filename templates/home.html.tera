@@ -16,12 +16,14 @@
       <div class="logo-container">
         <img src="../static/images/company_logo.jpg" alt="Company Logo" />
       </div>
-      <div
-        id="db-status"
-        style="position: absolute; top: 0; right: 0; padding: 10px"
-      >
-        DB Status: <span id="db-status-text">Checking...</span>
-      </div>
+      <a href="/admin">
+        <div
+          id="db-status"
+          style="position: absolute; top: 0; right: 0; padding: 10px"
+        >
+          DB Status: <span id="db-status-text">Checking...</span>
+        </div>
+      </a>
 
       <div class="user-details-container">
         <form id="punchForm" class="form-container">

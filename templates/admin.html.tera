@@ -1,0 +1,80 @@
+<html>
+  <head>
+    <title>Admin Dashboard</title>
+  </head>
+  <body>
+    <h1>Admin Dashboard</h1>
+    <!-- clear cookies button execute function clearCookies()-->
+    <button id="clear-cookies">Clear Cookies</button>
+
+    <section>
+      <h2>Pending Registrations</h2>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Device ID</th>
+          <th>Requested At</th>
+          <th>Action</th>
+        </tr>
+        {% for reg in registrations %}
+        <tr>
+          <td>{{ reg.name }}</td>
+          <td>{{ reg.email }}</td>
+          <td>{{ reg.device_id }}</td>
+          <td>{{ reg.created_at }}</td>
+          <td>
+            <button onclick="approveRegistration('{{ reg.id }}')">
+              Approve
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </section>
+
+    <section>
+      <h2>Users</h2>
+      <table>
+        <tr>
+          <th>User ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Department ID</th>
+          <th>Action</th>
+        </tr>
+        {% for user in users %}
+        <tr>
+          <td>{{ user.user_id }}</td>
+          <td>{{ user.name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.dept_id }}</td>
+          <td>
+            <button onclick="editUser('{{ user.user_id }}')">Edit</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </section>
+
+    <script>
+      console.log("Admin Dashboard loaded");
+      function approveRegistration(registrationId) {
+        // Add AJAX call to approve registration
+      }
+
+      function editUser(userId) {
+        // Add AJAX call to delete user
+      }
+      // clear cookies function
+      function clearCookies() {
+        document.cookie =
+          "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        console.log("Cookies cleared");
+      }
+      document
+        .getElementById("clear-cookies")
+        .addEventListener("click", clearCookies);
+    </script>
+  </body>
+</html>

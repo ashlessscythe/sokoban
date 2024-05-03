@@ -1,6 +1,6 @@
 async function getDeviceId() {
   // Initialize an agent at application startup.
-  const fpPromise = import("https://openfpcdn.io/fingerprintjs/v3").then(
+  const fpPromise = import("https://openfpcdn.io/fingerprintjs/v4").then(
     (FingerprintJS) => FingerprintJS.load()
   );
 

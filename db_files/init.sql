@@ -57,6 +57,13 @@ CREATE TABLE IF NOT EXISTS checklist_status (
   UNIQUE(user_id, drill_id) -- Add this line to create the composite unique constraint
 );
 
+-- admin users table
+CREATE TABLE IF NOT EXISTS admin_users (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- auth devices table
 CREATE TABLE IF NOT EXISTS auth_devices (
   id SERIAL PRIMARY KEY,

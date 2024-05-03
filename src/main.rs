@@ -2,6 +2,7 @@
 extern crate rocket;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::US::Mountain;
+use cookie::time::Duration;
 use rocket::http::Method;
 use rocket::{
     form::Form,
@@ -67,10 +68,17 @@ async fn login(
 ) -> Result<Json<LoginResponse>, Custom<String>> {
     // In a real-world scenario, validate the user_token against your data store
     println!("login form {:?}", login_form.user_token);
-    if is_valid_token(&login_form.user_token, &login_form.device_id, state).await {
+    if is_valid_token_and_user(&login_form.user_token, &login_form.device_id, state).await {
         println!("cloning cookie {}", &login_form.user_token);
-        cookies.add_private(Cookie::new("user_token", login_form.user_token.clone()));
-        cookies.add_private(Cookie::new("device_id", login_form.device_id.clone()));
+        // cookie from user_token with 10 min  expiry
+        cookies.add_private(
+            Cookie::build(("user_token", login_form.user_token.clone()))
+                .max_age(Duration::minutes(30))
+        );
+        cookies.add_private(
+            Cookie::build(("device_id", login_form.device_id.clone()))
+                .max_age(Duration::minutes(30))
+        );
         Ok(Json(LoginResponse {
             success: true,
             message: "Login successful".to_string(),
@@ -103,36 +111,54 @@ impl<'r> FromRequest<'r> for Authenticated {
     type Error = ();
 
     async fn from_request(req: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
+        // Access database pool or return an internal server error
         let db_pool = match req.rocket().state::<MyState>() {
             Some(state) => state,
             None => return rocket::request::Outcome::Error((Status::InternalServerError, ())),
         };
 
         let cookies = req.cookies();
+        
+        // Attempt to retrieve the user_token cookie early
+        let user_token_cookie = match cookies.get_private("user_token") {
+            Some(cookie) => cookie,
+            None => return rocket::request::Outcome::Error((Status::Unauthorized, ())),
+        };
 
-        if let Some(user_token_cookie) = cookies.get_private("user_token") {
-            if let Some(device_id_cookie) = cookies.get_private("device_id") {
-                if is_valid_token(user_token_cookie.value(), device_id_cookie.value(), db_pool.into()).await {
-                    rocket::request::Outcome::Success(Authenticated)
-                } else {
-                    rocket::request::Outcome::Error((Status::Unauthorized, ()))
-                }
+        // Determine the path to check for admin-specific logic
+        let uri = req.uri();
+        println!("uri: {:?}", uri.path());
+        if uri.path().contains("admin") {
+            // Admin path logic
+            if is_admin(user_token_cookie.value(), db_pool.into()).await {
+                rocket::request::Outcome::Success(Authenticated)
             } else {
                 rocket::request::Outcome::Error((Status::Unauthorized, ()))
             }
         } else {
-            rocket::request::Outcome::Error((Status::Unauthorized, ()))
+            // User path logic
+            match cookies.get_private("device_id") {
+                Some(device_id_cookie) => {
+                    if is_valid_token_and_user(user_token_cookie.value(), device_id_cookie.value(), db_pool.into()).await {
+                        rocket::request::Outcome::Success(Authenticated)
+                    } else {
+                        rocket::request::Outcome::Error((Status::Unauthorized, ()))
+                    }
+                },
+                None => rocket::request::Outcome::Error((Status::Unauthorized, ()))
+            }
         }
     }
 }
 
-async fn is_valid_token(token: &str, device_id: &str, state: &State<MyState>) -> bool {
+
+async fn is_valid_token_and_user(token: &str, device_id: &str, state: &State<MyState>) -> bool {
     // Check if the token matches the static value first
     if token == "mysecrettoken" {
         println!("Token matched the static secret token.");
         return true;
     }
-
+    
     println!("Looking for token: {}", token);
     // Proceed with the database check if it's not the static token
     let user_exists = sqlx::query("SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1)")
@@ -147,13 +173,44 @@ async fn is_valid_token(token: &str, device_id: &str, state: &State<MyState>) ->
         .await;
 
     // return boolean true if token exists in db and device_id exists in auth_devices
-    match (user_exists, device_exists) {
-        (Ok(user_row), Ok(device_row)) => user_row.get(0) && device_row.get(0),
-        (Err(e), _) | (_, Err(e)) => {
-            eprintln!("Failed to check token or device_id: {:?}", e);
-            false
-        }
-    }
+    let b_user: bool = match user_exists {
+        Ok(row) => {
+            row.get(0)
+        },
+        Err(_) => false,
+    };
+    println!("b_user: {:?}", b_user);
+
+    let b_device: bool = match device_exists {
+        Ok(row) => {
+            row.get(0)
+        },
+        Err(_) => false,
+    };
+    println!("b_device: {:?}", b_device);
+
+    // return
+    b_user && b_device
+
+}
+
+// check if user is admin from admin table
+async fn is_admin(token: &str, state: &State<MyState>) -> bool {
+    let is_admin = sqlx::query("SELECT EXISTS(SELECT 1 FROM admin_users WHERE user_id = $1)")
+        .bind(token)
+        .fetch_one(&state.pool)
+        .await;
+
+    let b_admin: bool = match is_admin {
+        Ok(row) => {
+            row.get(0)
+        },
+        Err(_) => false,
+    };
+    println!("b_admin: {:?}", b_admin);
+
+    // return
+    b_admin
 }
 
 #[get("/error")]
@@ -759,6 +816,47 @@ fn register_get() -> Result<Template, BadRequest<String>> {
     Ok(Template::render("register", &context))
 }
 
+// struct for combined admin context
+#[derive(Serialize)]
+struct AdminContext {
+    registrations: Vec<RegisterResponse>,
+    users: Vec<User>,
+}
+
+// TODO: make auth
+#[get("/admin")]
+async fn admin_dashboard(_auth: Authenticated, db_pool: &State<MyState>) -> Template {
+    let registrations = get_registrations(&db_pool.pool).await.unwrap_or_else(|e| {
+        eprintln!("Failed to get registrations: {}", e);
+        vec![]  // Return an empty vector if there's an error
+    });
+
+    let users_result= user_list(&db_pool).await;
+    let users = match users_result {
+        Ok(users) => users.into_inner(),
+        Err(_e) => {
+            eprintln!("Failed to get users");
+            vec![]  // Return an empty vector if there's an error
+        }
+    };
+
+    let context_data = AdminContext {
+        registrations,
+        users,
+    };
+
+    Template::render("admin", &context_data)
+}
+
+
+// get_registrations
+async fn get_registrations(pool: &PgPool) -> Result<Vec<RegisterResponse>, sqlx::Error> {
+    let registrations = sqlx::query_as::<_, RegisterResponse>("SELECT * FROM registrations")
+        .fetch_all(pool)
+        .await;
+    registrations
+}
+
 // post register route
 #[post("/", data = "<data>")]
 async fn register_post(
@@ -766,6 +864,7 @@ async fn register_post(
     state: &State<MyState>,
 ) -> Result<Json<RegisterRequest>, BadRequest<String>> {
     println!("Name: {}, Email: {}, Device ID: {}", data.name, data.email, data.device_id);
+    // if created_at is not provide
     let reg = sqlx::query_as::<_, RegisterRequest>(
         "INSERT INTO registrations (name, email, device_id) VALUES ($1, $2, $3) RETURNING *",
     )
@@ -836,7 +935,7 @@ async fn main() -> Result<(), rocket::Error> {
         // .mount("/id", routes![id_list])
         .mount(
             "/",
-            routes![index, db_check, home, login, login_form, error_page],
+            routes![index, db_check, home, login, login_form, error_page, admin_dashboard],
         )
         .register("/", catchers![not_found, internal_error])
         .manage(state);
@@ -939,9 +1038,20 @@ struct FoundStatusUpdate {
 }
 
 // struct for registration req
-#[derive(serde::Deserialize, Serialize, FromRow, Debug)]
+#[derive(serde::Deserialize, Serialize, sqlx::FromRow, Debug)]
 struct RegisterRequest {
     name: String,
     email: String,
     device_id: String,
+    created_at: Option<NaiveDateTime>,
+}
+
+// struct for registration response
+#[derive(serde::Deserialize, Serialize, sqlx::FromRow, Debug)]
+struct RegisterResponse {
+    id: i32,
+    name: String,
+    email: String,
+    device_id: String,
+    created_at: Option<NaiveDateTime>,
 }
