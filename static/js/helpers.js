@@ -187,7 +187,9 @@ async function checkDatabaseStatus() {
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const response = await fetch("/db-check", { signal: controller.signal });
-    const isOnline = response.ok && (await response.text()).includes("1");
+    const txt = await response.text();
+    const isOnline = response.ok && txt.includes("1");
+    console.log("DB response:", txt);
 
     console.log("Checking Database status:", isOnline ? "Online" : "Offline");
 
@@ -213,6 +215,7 @@ async function checkDatabaseStatus() {
 
 function updateDbStatusIndicator(isOnline) {
   const statusElement = document.getElementById("db-status-text");
+  const versionNumberElement = document.getElementById("app-version-text");
   if (isOnline) {
     statusElement.textContent = "Online";
     statusElement.style.color = "green";

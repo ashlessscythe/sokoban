@@ -30,27 +30,31 @@ mod func;
 
 // add db-check route
 #[get("/db-check")]
-async fn db_check(pool: &State<MyState>) -> String {
+async fn db_check(pool: &State<MyState>) -> Json<String> {
     dotenv::dotenv().ok();
+    const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
     let simualte_db_offline = std::env::var("SIMULATE_DB_OFFLINE").is_ok();
     println!("simualte_db_offline: {:?}", simualte_db_offline);
 
     if simualte_db_offline {
-        return "0: Database is offline".to_string();
+        return Json(format!("{{\"msg\": \"0: Database is offline\", \"version\": \"{}\"}}", APP_VERSION));
     }
-    match sqlx::query("SELECT 1")
+    let msg =    match sqlx::query("SELECT 1")
         .fetch_one(&pool.pool)
         .await
     {
         Ok(_) => "1: Database is online".to_string(),
         Err(_) => "0: Database is offline".to_string(),
-    }
+    };
+    // return json obj with msg and app version
+    Json(format!("{{\"msg\": \"{}\", \"version\": \"{}\"}}", msg, APP_VERSION))
 }
 
 #[derive(FromForm)]
 struct LoginForm {
     user_token: String,
     device_id: String,
+    current_url: String,
 }
 
 #[derive(Serialize)]
@@ -68,34 +72,79 @@ async fn login(
 ) -> Result<Json<LoginResponse>, Custom<String>> {
     // In a real-world scenario, validate the user_token against your data store
     println!("login form {:?}", login_form.user_token);
-    if is_valid_token_and_user(&login_form.user_token, &login_form.device_id, state).await {
-        println!("cloning cookie {}", &login_form.user_token);
-        // cookie from user_token with 10 min  expiry
-        cookies.add_private(
-            Cookie::build(("user_token", login_form.user_token.clone()))
+    let valid_token = match is_valid_token(&login_form.user_token, state).await {
+        true => {
+
+            println!("cloning cookie {}", &login_form.user_token);
+            // cookie from user_token with 10 min  expiry
+            cookies.add_private(
+                Cookie::build(("user_token", login_form.user_token.clone()))
                 .max_age(Duration::minutes(30))
-        );
-        cookies.add_private(
-            Cookie::build(("device_id", login_form.device_id.clone()))
+            );
+            true
+        },
+        false => {
+            println!("invalid token");
+            false
+        }
+    };
+    let valid_device = match is_valid_device(&login_form.device_id, state).await {
+        true => {
+            cookies.add_private(
+                Cookie::build(("device_id", login_form.device_id.clone()))
                 .max_age(Duration::minutes(30))
-        );
-        Ok(Json(LoginResponse {
-            success: true,
-            message: "Login successful".to_string(),
-            // redirect to where they were going
-            redirect: Some(
-                cookies
-                    .get("redirect")
-                    .map(|c| c.value().to_string())
-                    .unwrap_or("/home".to_string()),
-            ),
-        }))
+            );
+            true
+        },
+        false => {
+            println!("invalid device");
+            false
+        }
+    };
+
+    let is_admin_path = login_form.current_url.contains("admin");
+    println!("is_admin_path: {:?}", is_admin_path);
+
+    if is_admin_path {
+        if valid_token {
+            Ok(Json(LoginResponse {
+                success: true,
+                message: "Login successful".to_string(),
+                // redirect to where they were going
+                redirect: Some(
+                    cookies
+                        .get("redirect")
+                        .map(|c| c.value().to_string())
+                        .unwrap_or("/home".to_string()),
+                ),
+            }))
+        } else {
+            Ok(Json(LoginResponse {
+                success: false,
+                message: "Login failed".to_string(),
+                redirect: None,
+            }))
+        }
     } else {
-        Ok(Json(LoginResponse {
-            success: false,
-            message: "Login failed".to_string(),
-            redirect: None,
-        }))
+        if valid_token && valid_device {
+            Ok(Json(LoginResponse {
+                success: true,
+                message: "Login successful".to_string(),
+                // redirect to where they were going
+                redirect: Some(
+                    cookies
+                        .get("redirect")
+                        .map(|c| c.value().to_string())
+                        .unwrap_or("/home".to_string()),
+                ),
+            }))
+        } else {
+            Ok(Json(LoginResponse {
+                success: false,
+                message: "Login failed".to_string(),
+                redirect: None,
+            }))
+        }
     }
 }
 
@@ -139,7 +188,7 @@ impl<'r> FromRequest<'r> for Authenticated {
             // User path logic
             match cookies.get_private("device_id") {
                 Some(device_id_cookie) => {
-                    if is_valid_token_and_user(user_token_cookie.value(), device_id_cookie.value(), db_pool.into()).await {
+                    if is_valid_token_and_device(user_token_cookie.value(), device_id_cookie.value(), db_pool.into()).await {
                         rocket::request::Outcome::Success(Authenticated)
                     } else {
                         rocket::request::Outcome::Error((Status::Unauthorized, ()))
@@ -152,46 +201,45 @@ impl<'r> FromRequest<'r> for Authenticated {
 }
 
 
-async fn is_valid_token_and_user(token: &str, device_id: &str, state: &State<MyState>) -> bool {
-    // Check if the token matches the static value first
+async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
     if token == "mysecrettoken" {
         println!("Token matched the static secret token.");
         return true;
     }
-    
+
     println!("Looking for token: {}", token);
-    // Proceed with the database check if it's not the static token
     let user_exists = sqlx::query("SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1)")
         .bind(token)
         .fetch_one(&state.pool)
         .await;
 
+    match user_exists {
+        Ok(row) => row.get(0),
+        Err(_) => false,
+    }
+}
+
+async fn is_valid_device(device_id: &str, state: &State<MyState>) -> bool {
     println!("Looking for device_id: {}", device_id);
     let device_exists = sqlx::query("SELECT EXISTS(SELECT 1 FROM auth_devices WHERE device_id = $1)")
         .bind(device_id)
         .fetch_one(&state.pool)
         .await;
 
-    // return boolean true if token exists in db and device_id exists in auth_devices
-    let b_user: bool = match user_exists {
-        Ok(row) => {
-            row.get(0)
-        },
+    match device_exists {
+        Ok(row) => row.get(0),
         Err(_) => false,
-    };
+    }
+}
+
+async fn is_valid_token_and_device(token: &str, device_id: &str, state: &State<MyState>) -> bool {
+    let b_user = is_valid_token(token, state).await;
     println!("b_user: {:?}", b_user);
 
-    let b_device: bool = match device_exists {
-        Ok(row) => {
-            row.get(0)
-        },
-        Err(_) => false,
-    };
+    let b_device = is_valid_device(device_id, state).await;
     println!("b_device: {:?}", b_device);
 
-    // return
     b_user && b_device
-
 }
 
 // check if user is admin from admin table
@@ -825,27 +873,38 @@ struct AdminContext {
 
 // TODO: make auth
 #[get("/admin")]
-async fn admin_dashboard(_auth: Authenticated, db_pool: &State<MyState>) -> Template {
-    let registrations = get_registrations(&db_pool.pool).await.unwrap_or_else(|e| {
-        eprintln!("Failed to get registrations: {}", e);
-        vec![]  // Return an empty vector if there's an error
-    });
+async fn admin_dashboard(auth: Option<Authenticated>, db_pool: &State<MyState>) -> Template {
+    match auth {
+        Some(_) => {
+            let registrations = get_registrations(&db_pool.pool).await.unwrap_or_else(|e| {
+                eprintln!("Failed to get registrations: {}", e);
+                vec![]  // Return an empty vector if there's an error
+            });
 
-    let users_result= user_list(&db_pool).await;
-    let users = match users_result {
-        Ok(users) => users.into_inner(),
-        Err(_e) => {
-            eprintln!("Failed to get users");
-            vec![]  // Return an empty vector if there's an error
+            let users_result= user_list(&db_pool).await;
+            let users = match users_result {
+                Ok(users) => users.into_inner(),
+                Err(_e) => {
+                    eprintln!("Failed to get users");
+                    vec![]  // Return an empty vector if there's an error
+                }
+            };
+
+            let context_data = AdminContext {
+                registrations,
+                users,
+            };
+
+            Template::render("admin", &context_data)
         }
-    };
-
-    let context_data = AdminContext {
-        registrations,
-        users,
-    };
-
-    Template::render("admin", &context_data)
+        None => {
+            // User is not authenticated, provide a message and render the login form.
+            println!("user is not authenticated");
+            let mut ctx = HashMap::new();
+            ctx.insert("message", "User or device not authenticated.");
+            return Template::render("loginform", &ctx);
+        }
+    }
 }
 
 

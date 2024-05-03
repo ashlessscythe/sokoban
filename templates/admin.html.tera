@@ -61,16 +61,20 @@
       console.log("Admin Dashboard loaded");
       function approveRegistration(registrationId) {
         // Add AJAX call to approve registration
+        alert("Inprogress");
       }
 
       function editUser(userId) {
         // Add AJAX call to delete user
+        alert("Inprogress");
       }
       // clear cookies function
       function clearCookies() {
         document.cookie =
           "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         console.log("Cookies cleared");
+        // home
+        window.location.href = "/";
       }
       document
         .getElementById("clear-cookies")
