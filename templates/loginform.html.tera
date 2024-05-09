@@ -40,9 +40,12 @@
       const response = await fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        credentials: "include",
         body: `user_token=${encodeURIComponent(
           userToken
-        )}&device_id=${device_id}`,
+        )}&device_id=${device_id}&referer=${encodeURIComponent(
+          document.referrer
+        )}&current_url=${encodeURIComponent(window.location.href)}`,
       });
 
       const statusMessage = document.getElementById("statusMessage");

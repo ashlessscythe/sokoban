@@ -3075,12 +3075,13 @@ dependencies = [
 
 [[package]]
 name = "sokoban"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "cargo-watch",
  "chrono",
  "chrono-tz",
+ "cookie",
  "dotenv",
  "rocket",
  "rocket_cors",

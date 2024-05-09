@@ -13,8 +13,6 @@ services:
       - RUST_BACKTRACE=full
     networks:
       - s-net
-    depends_on:
-      - db
 
   db:
     image: postgres:latest

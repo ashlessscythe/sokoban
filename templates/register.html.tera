@@ -39,6 +39,8 @@
         const email = form.elements["email"].value;
         const device_id = await getDeviceId();
 
+        console.log("Sending register for Device ID:", device_id);
+
         const response = await fetch("/register", {
           method: "POST",
           headers: {
