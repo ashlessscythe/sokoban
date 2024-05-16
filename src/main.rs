@@ -871,8 +871,72 @@ struct AdminContext {
     users: Vec<User>,
 }
 
-// TODO: make auth
-#[get("/admin")]
+#[post("/approve_registration", data = "<data>")]
+async fn approve_registration(data: Json<AuthDeviceRequest>, db_pool: &State<MyState>) -> Result<Json<AuthDeviceRequest>, rocket::http::Status> {
+    let device_id = data.device_id.clone();
+    let device_name = data.device_name.clone();
+
+    // Check if the device exists in the registrations table
+    let registration_exists = match sqlx::query!(
+         "SELECT * FROM registrations WHERE device_id = $1",
+         device_id
+     )
+    .fetch_optional(&db_pool.pool)
+    .await
+    {
+        Ok(Some(_)) => true,
+        Ok(None) => {
+            println!("Device id {} does not exist", device_id);
+            return Err(rocket::http::Status::BadRequest)
+        },
+        Err(e) => {
+            println!("Database error: {}", e);
+            return Err(rocket::http::Status::InternalServerError)
+        },
+    };
+
+    // Insert into auth_devices table
+    let auth_device = match sqlx::query_as::<_, AuthDeviceRequest>(
+        "INSERT INTO auth_devices (device_id, device_name) VALUES ($1, $2) RETURNING *",
+    )
+    .bind(device_id.clone())
+    .bind(device_name.clone())
+    .fetch_one(&db_pool.pool)
+    .await
+    {
+        Ok(device) => device,
+        Err(e) => {
+            println!("Database error: {}", e);
+            return Err(rocket::http::Status::InternalServerError)
+        },
+    };
+
+    // Delete from registrations table after successful insert
+    if let Err(e) = sqlx::query!(
+        "DELETE FROM registrations WHERE device_id = $1",
+        device_id
+    )
+    .execute(&db_pool.pool)
+    .await
+    {
+        println!("Database error: {}", e);
+        return Err(rocket::http::Status::InternalServerError)
+    }
+
+    Ok(Json(auth_device))
+}
+
+// route for edit user
+#[get("/edit/<id>")]
+fn edit_user(id: String) -> Result<Template, BadRequest<String>> {
+    let mut context = HashMap::new();
+    context.insert("title", "Edit User");
+    context.insert("user_id", &id);
+    Ok(Template::render("edit", &context))
+}
+
+// Auth added
+#[get("/")]
 async fn admin_dashboard(auth: Option<Authenticated>, db_pool: &State<MyState>) -> Template {
     match auth {
         Some(_) => {
@@ -994,8 +1058,9 @@ async fn main() -> Result<(), rocket::Error> {
         // .mount("/id", routes![id_list])
         .mount(
             "/",
-            routes![index, db_check, home, login, login_form, error_page, admin_dashboard],
+            routes![index, db_check, home, login, login_form, error_page],
         )
+        .mount("/admin", routes![admin_dashboard, approve_registration, edit_user])
         .register("/", catchers![not_found, internal_error])
         .manage(state);
 
@@ -1113,4 +1178,11 @@ struct RegisterResponse {
     email: String,
     device_id: String,
     created_at: Option<NaiveDateTime>,
+}
+
+// struct for auth_device res/req
+#[derive(serde::Deserialize, Serialize, sqlx::FromRow, Debug)]
+struct AuthDeviceRequest {
+    device_name: String,
+    device_id: String,
 }

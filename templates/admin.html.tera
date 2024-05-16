@@ -24,7 +24,11 @@
           <td>{{ reg.device_id }}</td>
           <td>{{ reg.created_at }}</td>
           <td>
-            <button onclick="approveRegistration('{{ reg.id }}')">
+            <button
+              onclick="approveRegistration('{{ reg.id }}', '{{ reg.name }}', '{{
+                reg.device_id
+              }}')"
+            >
               Approve
             </button>
           </td>
@@ -59,15 +63,39 @@
 
     <script>
       console.log("Admin Dashboard loaded");
-      function approveRegistration(registrationId) {
-        // Add AJAX call to approve registration
-        alert("Inprogress");
+
+      async function approveRegistration(registrationId, name, deviceId) {
+        console.log(
+          `clicked approve on id ${registrationId}, name ${name}, deviceId ${deviceId}`
+        );
+        try {
+          const response = await fetch("/admin/approve_registration", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ device_id: deviceId, device_name: name }),
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              "Network response was not ok " + response.statusText
+            );
+          }
+
+          const data = await response.json();
+          console.log("Success:", data);
+        } catch (error) {
+          console.error("Error:", error);
+        }
       }
 
       function editUser(userId) {
-        // Add AJAX call to delete user
-        alert("Inprogress");
+        alert("In progress");
+        // For demonstration, navigate to the edit user route
+        // window.location.href = `/admin/edit/${userId}`;
       }
+
       // clear cookies function
       function clearCookies() {
         document.cookie =
