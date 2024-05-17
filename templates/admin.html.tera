@@ -88,6 +88,8 @@
         } catch (error) {
           console.error("Error:", error);
         }
+        // refresh the page
+        window.location.reload();
       }
 
       function editUser(userId) {

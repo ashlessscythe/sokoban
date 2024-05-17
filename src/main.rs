@@ -877,8 +877,8 @@ async fn approve_registration(data: Json<AuthDeviceRequest>, db_pool: &State<MyS
     let device_name = data.device_name.clone();
 
     // Check if the device exists in the registrations table
-    let registration_exists = match sqlx::query!(
-         "SELECT * FROM registrations WHERE device_id = $1",
+    match sqlx::query_scalar!(
+         "SELECT 1 FROM registrations WHERE device_id = $1",
          device_id
      )
     .fetch_optional(&db_pool.pool)
