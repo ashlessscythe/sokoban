@@ -943,10 +943,10 @@ async fn remove_auth_device(
 ) -> Result<(), rocket::http::Status> {
     let device_id = data.device_id.clone();
 
-    match sqlx::query!(
-        "DELETE FROM auth_devices WHERE device_id = $1",
-        device_id
+    match sqlx::query(
+        "DELETE FROM auth_devices WHERE device_id = $1"
     )
+    .bind(device_id.clone())
     .execute(&db_pool.pool)
     .await
     {
