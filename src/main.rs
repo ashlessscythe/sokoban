@@ -877,10 +877,10 @@ async fn approve_registration(data: Json<AuthDeviceRequest>, db_pool: &State<MyS
     let device_name = data.device_name.clone();
 
     // Check if the device exists in the registrations table
-    match sqlx::query_scalar!(
-         "SELECT 1 FROM registrations WHERE device_id = $1",
-         device_id
+    match sqlx::query(
+         "SELECT EXISTS(SELECT 1 FROM registrations WHERE device_id = $1)"
      )
+    .bind(&device_id)
     .fetch_optional(&db_pool.pool)
     .await
     {
@@ -912,10 +912,10 @@ async fn approve_registration(data: Json<AuthDeviceRequest>, db_pool: &State<MyS
     };
 
     // Delete from registrations table after successful insert
-    if let Err(e) = sqlx::query!(
-        "DELETE FROM registrations WHERE device_id = $1",
-        device_id
+    if let Err(e) = sqlx::query(
+        "DELETE FROM registrations WHERE device_id = $1"
     )
+    .bind(device_id.clone())
     .execute(&db_pool.pool)
     .await
     {
@@ -1069,6 +1069,7 @@ async fn main() -> Result<(), rocket::Error> {
         Err(e) => Err(e),
     }
 }
+
 
 #[derive(serde::Serialize)]
 struct ErrorResponse {
