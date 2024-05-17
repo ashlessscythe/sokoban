@@ -24,12 +24,28 @@
           <td>{{ reg.device_id }}</td>
           <td>{{ reg.created_at }}</td>
           <td>
-            <button onclick="approveRegistration('{{ reg.id }}')">
+            <button
+              onclick="approveRegistration('{{ reg.id }}', '{{ reg.name }}', '{{
+                reg.device_id
+              }}')"
+            >
               Approve
             </button>
           </td>
         </tr>
         {% endfor %}
+      </table>
+    </section>
+    <section>
+      <h2>Currently Authenticated Devices</h2>
+      <table id="auth-devices-table">
+        <tr>
+          <th>Device ID</th>
+          <th>Device Name</th>
+          <th>User ID</th>
+          <th>Authenticated At</th>
+          <th>Action</th>
+        </tr>
       </table>
     </section>
 
@@ -59,15 +75,113 @@
 
     <script>
       console.log("Admin Dashboard loaded");
-      function approveRegistration(registrationId) {
-        // Add AJAX call to approve registration
-        alert("Inprogress");
+      // Fetch authenticated devices when the page loads
+      window.onload = fetchAuthDevices;
+
+      async function approveRegistration(registrationId, name, deviceId) {
+        console.log(
+          `clicked approve on id ${registrationId}, name ${name}, deviceId ${deviceId}`
+        );
+        try {
+          const response = await fetch("/admin/approve_registration", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ device_id: deviceId, device_name: name }),
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              "Network response was not ok " + response.statusText
+            );
+          }
+
+          const data = await response.json();
+          console.log("Success:", data);
+        } catch (error) {
+          console.error("Error:", error);
+        }
+        // refresh the page
+        window.location.reload();
+      }
+
+      async function fetchAuthDevices() {
+        try {
+          const response = await fetch("/admin/auth_devices");
+          const devices = await response.json();
+          const table = document.getElementById("auth-devices-table");
+
+          devices.forEach((device) => {
+            const row = document.createElement("tr");
+
+            const deviceIdCell = document.createElement("td");
+            deviceIdCell.textContent = device.device_id;
+            row.appendChild(deviceIdCell);
+
+            const deviceNameCell = document.createElement("td");
+            deviceNameCell.textContent = device.device_name;
+            row.appendChild(deviceNameCell);
+
+            const userIdCell = document.createElement("td");
+            userIdCell.textContent = device.user_id;
+            row.appendChild(userIdCell);
+
+            const authAtCell = document.createElement("td");
+            authAtCell.textContent = device.authenticated_at;
+            row.appendChild(authAtCell);
+
+            const actionCell = document.createElement("td");
+            const deauthButton = document.createElement("button");
+            deauthButton.textContent = "Deauthorize";
+            deauthButton.onclick = () => deauthorizeDevice(device.device_id);
+            actionCell.appendChild(deauthButton);
+            row.appendChild(actionCell);
+
+            table.appendChild(row);
+          });
+        } catch (error) {
+          console.error("Error fetching authenticated devices:", error);
+        }
+      }
+
+      async function deauthorizeDevice(deviceId) {
+        const confirmed = confirm(
+          "Are you sure you want to deauthorize this device?"
+        );
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          const response = await fetch("/admin/remove_auth_device", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ device_id: deviceId }),
+          });
+
+          if (response.ok) {
+            console.log(`Device ${deviceId} deauthorized successfully.`);
+            // Refresh the authenticated devices table
+            fetchAuthDevices();
+          } else {
+            console.error("Failed to deauthorize device");
+          }
+        } catch (error) {
+          console.error("Error deauthorizing device:", error);
+        }
+        // refresh
+        window.location.reload();
       }
 
       function editUser(userId) {
-        // Add AJAX call to delete user
-        alert("Inprogress");
+        alert("In progress");
+        // For demonstration, navigate to the edit user route
+        // window.location.href = `/admin/edit/${userId}`;
       }
+
       // clear cookies function
       function clearCookies() {
         document.cookie =
