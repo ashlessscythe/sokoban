@@ -1,4 +1,4 @@
-use chrono::{Date, Utc};
+use chrono::{Utc};
 use rocket::outcome::Outcome;
 use rocket::request::{self, FromRequest, Request};
 use sha2::{Digest, Sha256};

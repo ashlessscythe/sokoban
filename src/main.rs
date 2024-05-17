@@ -371,7 +371,7 @@ async fn get_status_list(state: &State<MyState>) -> Result<Template, Status> {
     println!("template_name: {:?}", template_name);
 
     // appropriate query
-    let sql_query = (r#"
+    let sql_query = r#"
         SELECT
             u.user_id,
             u.name,
@@ -399,7 +399,7 @@ async fn get_status_list(state: &State<MyState>) -> Result<Template, Status> {
             p.punch_time = latest_punch.max_punch_time
         ORDER BY
             u.name, p.punch_time DESC;
-        "#);
+        "#;
 
     let mut user_statuses: Vec<UserStatus> = sqlx::query_as::<Postgres, UserStatus>(sql_query)
         .fetch_all(&state.pool)
