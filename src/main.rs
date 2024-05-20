@@ -206,6 +206,20 @@ impl<'r> FromRequest<'r> for Authenticated {
     }
 }
 
+// route to clear cookies
+#[post("/clear-cookies")]
+async fn clear_cookies(cookies: &CookieJar<'_>) -> Redirect {
+    // Clear the "user_token" cookie
+    cookies.remove_private(Cookie::from("user_token"));
+    println!("Cleared the user_token cookie.");
+
+    // Clear the "device_id" cookie
+    cookies.remove_private(Cookie::from("device_id"));
+    println!("Cleared the device_id cookie.");
+
+    // Redirect to the home page
+    Redirect::to("/")
+}
 
 async fn is_valid_token(token: &str, state: &State<MyState>) -> bool {
     if token == "mysecrettoken" {
@@ -1102,7 +1116,7 @@ async fn main() -> Result<(), rocket::Error> {
         // .mount("/id", routes![id_list])
         .mount(
             "/",
-            routes![index, db_check, home, login, login_form, error_page],
+            routes![index, db_check, home, login, login_form, error_page, clear_cookies],
         )
         .mount("/admin", routes![admin_dashboard, approve_registration, get_auth_devices, remove_auth_device, edit_user])
         .register("/", catchers![not_found, internal_error])

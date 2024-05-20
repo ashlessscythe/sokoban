@@ -29,7 +29,7 @@
           style="width: 100%; height: auto"
         />
       </button>
-      <h1>User Statuses</h1>
+      <h1>User Statuses (Last 24-hrs)</h1>
     </div>
     <div
       class="table-container"
