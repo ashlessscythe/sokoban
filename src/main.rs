@@ -88,11 +88,17 @@ async fn login(
             false
         }
     };
+    // get coockie_ttl from env
+    let cookie_ttl = match std::env::var("COOKIE_TTL") {
+        Ok(val) => val.parse::<i64>().unwrap(),
+        Err(_) => 30,
+    };
+    eprintln!("cookie_ttl: {:?}", cookie_ttl);
     let valid_device = match is_valid_device(&login_form.device_id, state).await {
         true => {
             cookies.add_private(
                 Cookie::build(("device_id", login_form.device_id.clone()))
-                .max_age(Duration::minutes(30))
+                .max_age(Duration::minutes(cookie_ttl))
             );
             true
         },
@@ -806,8 +812,14 @@ async fn last_punch(
     id: String,
     state: &State<MyState>,
 ) -> Result<Json<PunchRecord>, BadRequest<String>> {
+
+    // get hrs from env or 24
+     let hrs = std::env::var("LAST_PUNCH_HOURS").unwrap_or("24".to_string());
+     eprintln!("hrs: {:?}", hrs);
+    // get last punch record for user
+    let query = format!("SELECT * FROM punches WHERE user_id = $1 AND punch_time > NOW() - INTERVAL '{} HOURS' ORDER BY id DESC LIMIT 1", hrs);
     let punch = sqlx::query_as::<Postgres, PunchRecord>(
-        "SELECT * FROM punches WHERE user_id = $1 AND punch_time > NOW() - INTERVAL '24 HOURS' ORDER BY id DESC LIMIT 1",
+        &query
     )
     .bind(id)
     .fetch_optional(&state.pool)
