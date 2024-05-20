@@ -184,12 +184,20 @@
 
       // clear cookies function
       function clearCookies() {
-        document.cookie =
-          "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        console.log("Cookies cleared");
-        // home
-        window.location.href = "/";
+        fetch("/clear-cookies", {
+          method: "POST",
+          credentials: "include",
+        }).then((response) => {
+          if (response.ok) {
+            console.log("Cookies cleared");
+            // Redirect to the home page
+            window.location.href = "/";
+          } else {
+            console.error("Failed to clear cookies");
+          }
+        });
       }
+
       document
         .getElementById("clear-cookies")
         .addEventListener("click", clearCookies);
