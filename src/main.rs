@@ -174,37 +174,63 @@ impl<'r> FromRequest<'r> for Authenticated {
 
         let cookies = req.cookies();
         
-        // Attempt to retrieve the user_token cookie early
-        let user_token_cookie = match cookies.get_private("user_token") {
-            Some(cookie) => cookie,
-            None => return rocket::request::Outcome::Error((Status::Unauthorized, ())),
-        };
 
         // Determine the path to check for admin-specific logic
         let uri = req.uri();
         println!("uri: {:?}", uri.path());
+
         if uri.path().contains("admin") {
             // Admin path logic
+            // Attempt to retrieve the user_token cookie early
+            let user_token_cookie = match cookies.get_private("user_token") {
+                Some(cookie) => cookie,
+                None => return rocket::request::Outcome::Error((Status::Unauthorized, ())),
+            };
+
             if is_admin(user_token_cookie.value(), db_pool.into()).await {
                 rocket::request::Outcome::Success(Authenticated)
             } else {
                 rocket::request::Outcome::Error((Status::Unauthorized, ()))
             }
         } else {
-            // User path logic
+            // Non-admin path logic
+            // First check if the user has a valid device
             match cookies.get_private("device_id") {
                 Some(device_id_cookie) => {
-                    if is_valid_token_and_device(user_token_cookie.value(), device_id_cookie.value(), db_pool.into()).await {
+                    if is_valid_device(device_id_cookie.value(), db_pool.into()).await {
+                        rocket::request::Outcome::Success(Authenticated)
+                    } else {
+                        // If not a valid device, check if the user is an admin
+                        let user_token_cookie = match cookies.get_private("user_token") {
+                            Some(cookie) => cookie,
+                            None => return rocket::request::Outcome::Error((Status::Unauthorized, ())),
+                        };
+
+                        if is_admin(user_token_cookie.value(), db_pool.into()).await {
+                            rocket::request::Outcome::Success(Authenticated)
+                        } else {
+                            rocket::request::Outcome::Error((Status::Unauthorized, ()))
+                        }
+                    }
+                },
+                None => {
+                    // if no device, get user token
+                    let user_token_cookie = match cookies.get_private("user_token") {
+                        Some(cookie) => cookie,
+                        None => return rocket::request::Outcome::Error((Status::Unauthorized, ())),
+                    };
+                    // If device_id cookie is missing, check if the user is an admin
+                    if is_admin(user_token_cookie.value(), db_pool.into()).await {
                         rocket::request::Outcome::Success(Authenticated)
                     } else {
                         rocket::request::Outcome::Error((Status::Unauthorized, ()))
                     }
-                },
-                None => rocket::request::Outcome::Error((Status::Unauthorized, ()))
+                }
             }
         }
     }
 }
+
 
 // route to clear cookies
 #[post("/clear-cookies")]
@@ -246,6 +272,7 @@ async fn is_valid_device(device_id: &str, state: &State<MyState>) -> bool {
         .fetch_one(&state.pool)
         .await;
 
+    println!("looking for device");
     match device_exists {
         Ok(row) => row.get(0),
         Err(_) => false,
