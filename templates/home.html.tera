@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Home</title>
+    <title>{{ title }}</title>
     <link rel="stylesheet" href="../static/css/style.css" />
     <script src="../static/js/helpers.js"></script>
     <script src="../static/js/fingerprint.js"></script>
@@ -208,10 +208,12 @@
         document.getElementById("punchForm").style.display = "none";
         const messageDiv = document.getElementById("statusMessage");
 
+        const lineColor = oppositeStatus === "In" ? "green" : "red";
+
         messageDiv.innerHTML = `
           <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
           <h2>Hello, ${userName}.
-            <p id="countdown" style="font-style: oblique 40deg;">Please wait... checking you &#8658; ${oppositeStatus}: ...${timeoutSeconds}...</>
+            <p id="countdown" style="font-style: oblique 40deg; color: ${lineColor};">Please wait... checking you &#8658; ${oppositeStatus}: ...${timeoutSeconds}...</>
           </h2>
           <button class="block-button" onclick="window.location.href='/'">Cancel</button>
       `;
