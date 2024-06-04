@@ -6,4 +6,4 @@
 
 tasks:
   - init: bootstrap
-    command: sh ./bootstrap.sh
+    command: sh /workspace/sokoban/bootstrap.sh

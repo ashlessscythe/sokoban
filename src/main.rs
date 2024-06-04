@@ -169,67 +169,57 @@ impl<'r> FromRequest<'r> for Authenticated {
         // Access database pool or return an internal server error
         let db_pool = match req.rocket().state::<MyState>() {
             Some(state) => state,
-            None => return rocket::request::Outcome::Error((Status::InternalServerError, ())),
+            None => {
+                eprintln!("Database pool unavailable");
+                return rocket::request::Outcome::Error((Status::InternalServerError, ()));
+            }
         };
 
         let cookies = req.cookies();
-        
-
-        // Determine the path to check for admin-specific logic
         let uri = req.uri();
         println!("uri: {:?}", uri.path());
 
-        if uri.path().contains("admin") {
+        if uri.path().starts_with("/admin") {
             // Admin path logic
-            // Attempt to retrieve the user_token cookie early
-            let user_token_cookie = match cookies.get_private("user_token") {
-                Some(cookie) => cookie,
-                None => return rocket::request::Outcome::Error((Status::Unauthorized, ())),
-            };
-
-            if is_admin(user_token_cookie.value(), db_pool.into()).await {
-                rocket::request::Outcome::Success(Authenticated)
-            } else {
-                rocket::request::Outcome::Error((Status::Unauthorized, ()))
-            }
-        } else {
-            // Non-admin path logic
-            // First check if the user has a valid device
-            match cookies.get_private("device_id") {
-                Some(device_id_cookie) => {
-                    if is_valid_device(device_id_cookie.value(), db_pool.into()).await {
-                        rocket::request::Outcome::Success(Authenticated)
-                    } else {
-                        // If not a valid device, check if the user is an admin
-                        let user_token_cookie = match cookies.get_private("user_token") {
-                            Some(cookie) => cookie,
-                            None => return rocket::request::Outcome::Error((Status::Unauthorized, ())),
-                        };
-
-                        if is_admin(user_token_cookie.value(), db_pool.into()).await {
-                            rocket::request::Outcome::Success(Authenticated)
-                        } else {
-                            rocket::request::Outcome::Error((Status::Unauthorized, ()))
-                        }
-                    }
-                },
-                None => {
-                    // if no device, get user token
-                    let user_token_cookie = match cookies.get_private("user_token") {
-                        Some(cookie) => cookie,
-                        None => return rocket::request::Outcome::Error((Status::Unauthorized, ())),
-                    };
-                    // If device_id cookie is missing, check if the user is an admin
+            match cookies.get_private("user_token") {
+                Some(user_token_cookie) => {
                     if is_admin(user_token_cookie.value(), db_pool.into()).await {
                         rocket::request::Outcome::Success(Authenticated)
                     } else {
                         rocket::request::Outcome::Error((Status::Unauthorized, ()))
                     }
                 }
+                None => rocket::request::Outcome::Error((Status::Unauthorized, ())),
+            }
+        } else {
+            // Non-admin path logic
+            match cookies.get_private("device_id") {
+                Some(device_id_cookie) => {
+                    if is_valid_device(device_id_cookie.value(), db_pool.into()).await {
+                        rocket::request::Outcome::Success(Authenticated)
+                    } else {
+                        check_user_token_for_admin(cookies, db_pool).await
+                    }
+                }
+                None => check_user_token_for_admin(cookies, db_pool).await,
             }
         }
     }
 }
+
+async fn check_user_token_for_admin<'a>(cookies: &'a rocket::http::CookieJar<'a>, db_pool: &'a MyState) -> rocket::request::Outcome<Authenticated, ()> {
+    match cookies.get_private("user_token") {
+        Some(user_token_cookie) => {
+            if is_admin(user_token_cookie.value(), db_pool.into()).await {
+                rocket::request::Outcome::Success(Authenticated)
+            } else {
+                rocket::request::Outcome::Error((Status::Unauthorized, ()))
+            }
+        }
+        None => rocket::request::Outcome::Error((Status::Unauthorized, ())),
+    }
+}
+
 
 
 // route to clear cookies
