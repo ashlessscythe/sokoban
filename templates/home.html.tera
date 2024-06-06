@@ -180,8 +180,8 @@
             cancelInputClearTimer();
 
             // set countdown higher for newbies
-            let time = punchCount <= 5 ? 7 : 5;
-            console.log("punchCount", punchCount);
+            let time = punchCount <= 5 ? 5 : 3;
+            console.log("punchCount:", punchCount);
 
             const oppositeStatus = userStatus === "In" ? "Out" : "In";
             initiateCountdownAndStatusUpdate(
@@ -211,7 +211,7 @@
         const lineColor = oppositeStatus === "In" ? "green" : "red";
 
         messageDiv.innerHTML = `
-          <img src="https://source.unsplash.com/random?cat" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
+          <img src="https://source.unsplash.com/random?puppy" alt="Random Cat Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
           <h2>Hello, ${userName}.
             <p id="countdown" style="font-style: oblique 40deg; color: ${lineColor};">Please wait... checking you &#8658; ${oppositeStatus}: ...${timeoutSeconds}...</>
           </h2>
