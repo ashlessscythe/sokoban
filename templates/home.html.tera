@@ -180,7 +180,7 @@
             cancelInputClearTimer();
 
             // set countdown higher for newbies
-            let time = punchCount <= 5 ? 5 : 3;
+            let time = punchCount <= 4 ? 4 : 3;
             console.log("punchCount:", punchCount);
 
             const oppositeStatus = userStatus === "In" ? "Out" : "In";
@@ -226,7 +226,9 @@
 
           if (countdown <= 0) {
             clearInterval(interval);
-            updateStatus(oppositeStatus, userId);
+            // false to reload after countdown ends
+            updateStatus(oppositeStatus, userId, false);
+            window.location.reload();
           }
         }, 1000);
       }

@@ -263,9 +263,9 @@ async function updateStatus(status, userId, showMessage = true) {
         messageDiv.textContent = `Status updated to ${status}`;
         await wait(2000);
         messageDiv.textContent = "";
-        window.location.reload();
       } else {
         console.log(`Status updated to ${status}`);
+        messageDiv.textContent = "";
       }
       let responseData = await punchResponse.json();
       return responseData;
@@ -276,6 +276,7 @@ async function updateStatus(status, userId, showMessage = true) {
         messageDiv.textContent = "";
       } else {
         console.error(`Failed to update status: ${punchResponse.statusText}`);
+        messageDiv.textContent = "";
       }
       throw new Error(`Failed to update status: ${punchResponse.statusText}`);
     }
@@ -286,6 +287,7 @@ async function updateStatus(status, userId, showMessage = true) {
       messageDiv.textContent = "";
     } else {
       console.error("Network error during status update:", error);
+      messageDiv.textContent = "";
     }
     throw error;
   }
