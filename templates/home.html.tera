@@ -228,6 +228,7 @@
             clearInterval(interval);
             // false to reload after countdown ends
             updateStatus(oppositeStatus, userId, false);
+            window.location.reload();
           }
         }, 1000);
       }
