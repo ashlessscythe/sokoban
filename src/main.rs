@@ -894,8 +894,13 @@ fn index() -> Redirect {
 // home route
 #[get("/home")]
 fn home() -> Result<Template, BadRequest<String>> {
+    // Load the environment variable
+    dotenv::dotenv().ok();
+
+    let company_logo_url = std::env::var("COMPANY_LOGO_URL").expect("COMPANY_LOGO_URL must be set");
     let mut context = HashMap::new();
     context.insert("title", "Home");
+    context.insert("company_logo_url", &company_logo_url);
     Ok(Template::render("home", &context))
 }
 
