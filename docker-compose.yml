@@ -14,19 +14,19 @@ services:
     networks:
       - s-net
 
-  # db:
-  #   image: postgres:latest
-  #   container_name: pgsql
-  #   environment:
-  #     POSTGRESS_USER: postgres
-  #     POSTGRES_PASSWORD: dbpass
-  #     POSTGRES_DB: soko-db
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - local-pg-data:/var/lib/postgresql/data
-  #   networks:
-  #     - s-net
+  db:
+    image: postgres:latest
+    container_name: pgsql
+    environment:
+      POSTGRESS_USER: postgres
+      POSTGRES_PASSWORD: dbpass
+      POSTGRES_DB: soko-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - local-pg-data:/var/lib/postgresql/data
+    networks:
+      - s-net
 
 volumes:
   local-pg-data:

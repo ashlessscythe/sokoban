@@ -16,13 +16,25 @@ BEGIN
 END $$;
 
 -- Users Table
+-- CREATE TABLE IF NOT EXISTS users (
+--   user_id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4(),
+--   name VARCHAR(255) NOT NULL,
+--   email VARCHAR(255) NOT NULL,
+--   dept_id INT DEFAULT 1,
+--   profile_picture VARCHAR(255),
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+
+-- alternate users table
 CREATE TABLE IF NOT EXISTS users (
-  user_id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(36) DEFAULT uuid_generate_v4(),
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
   dept_id INT DEFAULT 1,
   profile_picture VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_user_id UNIQUE (user_id)
 );
 
 -- Departments Table

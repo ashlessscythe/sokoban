@@ -1,11 +1,12 @@
 TODO:
 -------------------------------
-Add dept & supervisor?
-add device id
+Add supervisor?
 
 
 DONE:
 ------------------
+add device id
+add dept
 scroll for long list
 Verify presence page with checkmark?
 idempotency
