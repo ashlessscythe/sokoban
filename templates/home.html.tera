@@ -14,7 +14,7 @@
     </div>
     <div id="app-container">
       <div class="logo-container">
-        <img src="../static/images/company_logo.jpg" alt="Company Logo" />
+        <img src="{{ company_logo_url }}" alt="company-logo" border="0" />
       </div>
       <a href="/admin">
         <div
