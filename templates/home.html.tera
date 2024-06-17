@@ -152,15 +152,6 @@
             const userData = await userResponse.json();
             const userName = userData.name;
 
-            const fetchPunchCount = await fetch(
-              `/punch/${encodeURIComponent(userId)}/count`
-            );
-            if (!fetchPunchCount.ok) {
-              messageDiv.textContent =
-                "Error fetching punch count: " + fetchPunchCount.statusText;
-              return;
-            }
-
             const punchResponse = await fetch(
               `/punch/${encodeURIComponent(userId)}/last_punch`
             ).then((res) => {
@@ -175,13 +166,10 @@
 
             const punchData = await punchResponse.json();
             const userStatus = punchData.in_out;
-            const punchCount = await fetchPunchCount.json();
 
             cancelInputClearTimer();
 
-            // set countdown higher for newbies
-            let time = punchCount <= 4 ? 4 : 3;
-            console.log("punchCount:", punchCount);
+            let time = 3; // timeout
 
             const oppositeStatus = userStatus === "In" ? "Out" : "In";
             initiateCountdownAndStatusUpdate(
@@ -202,7 +190,7 @@
         userStatus,
         oppositeStatus,
         userId,
-        timeoutSeconds = 4
+        timeoutSeconds = 4  // default to 4 seconds
       ) {
         // hide punchform
         document.getElementById("punchForm").style.display = "none";
