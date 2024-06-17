@@ -20,7 +20,7 @@ pub fn generate_temp_id(user_id: &str) -> String {
     let drill_id = get_drill_id(None); // Ensure this function is defined and returns a value
     let mut hasher = Sha256::new();
     hasher.update(user_id);
-    hasher.update(&drill_id.to_ne_bytes());
+    hasher.update(drill_id.to_ne_bytes());
 
     // Finalize the hash and obtain the result
     let result = hasher.finalize();
