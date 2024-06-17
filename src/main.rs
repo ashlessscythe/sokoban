@@ -131,26 +131,24 @@ async fn login(
                 redirect: None,
             }))
         }
+    } else if valid_token && valid_device {
+        Ok(Json(LoginResponse {
+            success: true,
+            message: "Login successful".to_string(),
+            // redirect to where they were going
+            redirect: Some(
+                cookies
+                    .get("redirect")
+                    .map(|c| c.value().to_string())
+                    .unwrap_or("/home".to_string()),
+            ),
+        }))
     } else {
-        if valid_token && valid_device {
-            Ok(Json(LoginResponse {
-                success: true,
-                message: "Login successful".to_string(),
-                // redirect to where they were going
-                redirect: Some(
-                    cookies
-                        .get("redirect")
-                        .map(|c| c.value().to_string())
-                        .unwrap_or("/home".to_string()),
-                ),
-            }))
-        } else {
-            Ok(Json(LoginResponse {
-                success: false,
-                message: "Login failed".to_string(),
-                redirect: None,
-            }))
-        }
+        Ok(Json(LoginResponse {
+            success: false,
+            message: "Login failed".to_string(),
+            redirect: None,
+        }))
     }
 }
 
@@ -627,7 +625,7 @@ async fn get_checklist(state: &State<MyState>) -> Result<Template, Status> {
 
     // Finally, create the context and render the template
     println!("template_name: {:?}", template_name);
-    Ok(Template::render(template_name, &context_data))
+    Ok(Template::render(template_name, context_data))
 }
 
 // build hashmap of ids from user table
@@ -793,7 +791,7 @@ async fn add(data: Json<User>, state: &State<MyState>) -> Result<Json<User>, Bad
     .bind(&data.name)
     .bind(&data.email)
     .bind(user_id.to_string())
-    .bind(&data.dept_id)
+    .bind(data.dept_id)
     .fetch_one(&state.pool)
     .await
     .map_err(|e| BadRequest(e.to_string()))?;
@@ -898,9 +896,11 @@ fn home() -> Result<Template, BadRequest<String>> {
     dotenv::dotenv().ok();
 
     let company_logo_url = std::env::var("COMPANY_LOGO_URL").expect("COMPANY_LOGO_URL must be set");
+    let unsplash_access_key = std::env::var("UNSPLASH_ACCESS_KEY").expect("UNSPLASH_ACCESS_KEY must be set");
     let mut context = HashMap::new();
     context.insert("title", "Home");
     context.insert("company_logo_url", &company_logo_url);
+    context.insert("unsplash_access_key", &unsplash_access_key);
     Ok(Template::render("home", &context))
 }
 
@@ -1025,7 +1025,7 @@ async fn admin_dashboard(auth: Option<Authenticated>, db_pool: &State<MyState>) 
                 vec![]  // Return an empty vector if there's an error
             });
 
-            let users_result= user_list(&db_pool).await;
+            let users_result= user_list(db_pool).await;
             let users = match users_result {
                 Ok(users) => users.into_inner(),
                 Err(_e) => {
@@ -1039,14 +1039,14 @@ async fn admin_dashboard(auth: Option<Authenticated>, db_pool: &State<MyState>) 
                 users,
             };
 
-            Template::render("admin", &context_data)
+            Template::render("admin", context_data)
         }
         None => {
             // User is not authenticated, provide a message and render the login form.
             println!("user is not authenticated");
             let mut ctx = HashMap::new();
             ctx.insert("message", "User or device not authenticated.");
-            return Template::render("loginform", &ctx);
+            Template::render("loginform", &ctx)
         }
     }
 }
@@ -1054,10 +1054,10 @@ async fn admin_dashboard(auth: Option<Authenticated>, db_pool: &State<MyState>) 
 
 // get_registrations
 async fn get_registrations(pool: &PgPool) -> Result<Vec<RegisterResponse>, sqlx::Error> {
-    let registrations = sqlx::query_as::<_, RegisterResponse>("SELECT * FROM registrations")
+    
+    sqlx::query_as::<_, RegisterResponse>("SELECT * FROM registrations")
         .fetch_all(pool)
-        .await;
-    registrations
+        .await
 }
 
 // post register route
@@ -1078,7 +1078,7 @@ async fn register_post(
     .await
     .map_err(|e| {
         eprintln!("Failed to register: {:?}", e);
-        BadRequest(format!("db error: {}", e.to_string()))
+        BadRequest(format!("db error: {}", e))
     })?;
 
     Ok(Json(reg))
