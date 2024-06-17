@@ -169,15 +169,13 @@
 
             cancelInputClearTimer();
 
-            let time = 2; // timeout
-
             const oppositeStatus = userStatus === "In" ? "Out" : "In";
             initiateCountdownAndStatusUpdate(
               userName,
               userStatus,
               oppositeStatus,
               userId,
-              (timeoutSeconds = time),
+              (timeoutSeconds = 2),
               (showCountdown = false),
               (imageQuery = "puppy")
             );
@@ -220,7 +218,7 @@
 
         messageDiv.innerHTML = `
     <img src="${imageUrl}" alt="Random Image" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
-    <h2 style="color: ${lineColor};">CHECKED ${oppositeStatus}</h2>
+    <h2 style="color: ${lineColor};">Checked ${oppositeStatus}</h2>
     <h2>Hello, ${userName}.
       ${countdownHTML}
     </h2>
