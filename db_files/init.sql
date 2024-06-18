@@ -1,6 +1,6 @@
 -- initial_setup.sql
 -- here be dragons
--- drop table if exists punches, users, departments cascade;
+-- drop table if exists punches, users, departments, admin_users cascade;
 -- here end dragons
 
 -- Extensions
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Departments Table
 CREATE TABLE IF NOT EXISTS departments (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  bossId VARCHAR(36),
+  name VARCHAR(255) NOT NULL UNIQUE,
+  boss_id VARCHAR(36),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS checklist_status (
 -- admin users table
 CREATE TABLE IF NOT EXISTS admin_users (
   id SERIAL PRIMARY KEY,
-  user_id VARCHAR(36) NOT NULL,
+  user_id INT NOT NULL REFERENCES users(id),    -- changed
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -99,10 +99,10 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM information_schema.table_constraints 
-    WHERE constraint_name = 'departments_bossId_fkey'
+    WHERE constraint_name = 'departments_boss_id_fkey'
   ) THEN
     ALTER TABLE departments
-    ADD FOREIGN KEY (bossId) REFERENCES users(user_id);
+    ADD FOREIGN KEY (boss_id) REFERENCES users(user_id);
   END IF;
   IF NOT EXISTS (
     SELECT 1

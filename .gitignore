@@ -5,4 +5,5 @@ Secrets*.toml
 ignoreme/
 *.dump
 csv-export/
+csv/
 *.csv

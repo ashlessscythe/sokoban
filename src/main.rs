@@ -281,7 +281,7 @@ async fn is_valid_token_and_device(token: &str, device_id: &str, state: &State<M
 
 // check if user is admin from admin table
 async fn is_admin(token: &str, state: &State<MyState>) -> bool {
-    let is_admin = sqlx::query("SELECT EXISTS(SELECT 1 FROM admin_users WHERE user_id = $1)")
+    let is_admin = sqlx::query("SELECT EXISTS(SELECT 1 FROM admin_users au JOIN users u ON au.user_id = u.id WHERE u.user_id = $1)")
         .bind(token)
         .fetch_one(&state.pool)
         .await;
