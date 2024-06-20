@@ -60,13 +60,43 @@
           <th>Action</th>
         </tr>
         {% for user in users %}
-        <tr>
+        <tr id="user-{{ user.user_id }}">
           <td>{{ user.user_id }}</td>
-          <td>{{ user.name }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.dept_id }}</td>
+          <td>
+            <span id="name-{{ user.user_id }}">{{ user.name }}</span
+            ><input
+              type="text"
+              id="edit-name-{{ user.user_id }}"
+              value="{{ user.name }}"
+              style="display: none"
+            />
+          </td>
+          <td>
+            <span id="email-{{ user.user_id }}">{{ user.email }}</span
+            ><input
+              type="text"
+              id="edit-email-{{ user.user_id }}"
+              value="{{ user.email }}"
+              style="display: none"
+            />
+          </td>
+          <td>
+            <span id="dept_id-{{ user.user_id }}">{{ user.dept_id }}</span
+            ><input
+              type="text"
+              id="edit-dept_id-{{ user.user_id }}"
+              value="{{ user.dept_id }}"
+              style="display: none"
+            />
+          </td>
           <td>
             <button onclick="editUser('{{ user.user_id }}')">Edit</button>
+            <button
+              onclick="saveUser('{{ user.user_id }}')"
+              style="display: none"
+            >
+              Save
+            </button>
           </td>
         </tr>
         {% endfor %}
@@ -177,9 +207,88 @@
       }
 
       function editUser(userId) {
-        alert("In progress");
-        // For demonstration, navigate to the edit user route
-        // window.location.href = `/admin/edit/${userId}`;
+        document.getElementById(`name-${userId}`).style.display = "none";
+        document.getElementById(`email-${userId}`).style.display = "none";
+        document.getElementById(`dept_id-${userId}`).style.display = "none";
+
+        document.getElementById(`edit-name-${userId}`).style.display = "inline";
+        document.getElementById(`edit-email-${userId}`).style.display =
+          "inline";
+        document.getElementById(`edit-dept_id-${userId}`).style.display =
+          "inline";
+
+        document.querySelector(
+          `#user-${userId} button[onclick^="editUser"]`
+        ).style.display = "none";
+        document.querySelector(
+          `#user-${userId} button[onclick^="saveUser"]`
+        ).style.display = "inline";
+      }
+
+      function saveUser(userId) {
+        let name = document.getElementById(`edit-name-${userId}`).value;
+        let email = document.getElementById(`edit-email-${userId}`).value;
+        let dept_id = parseInt(
+          document.getElementById(`edit-dept_id-${userId}`).value,
+
+          10
+        );
+
+        // Confirm changes
+        if (
+          confirm(
+            `Save changes for User ${userId}?\nName: ${name}\nEmail: ${email}\nDept ID: ${dept_id}`
+          )
+        ) {
+          // Perform AJAX request to update user data
+          fetch(`/admin/update_user/${userId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: name,
+              email: email,
+              dept_id: dept_id,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                // Update the display with new values
+                document.getElementById(`name-${userId}`).textContent = name;
+                document.getElementById(`email-${userId}`).textContent = email;
+                document.getElementById(`dept_id-${userId}`).textContent =
+                  dept_id;
+
+                document.getElementById(`name-${userId}`).style.display =
+                  "inline";
+                document.getElementById(`email-${userId}`).style.display =
+                  "inline";
+                document.getElementById(`dept_id-${userId}`).style.display =
+                  "inline";
+
+                document.getElementById(`edit-name-${userId}`).style.display =
+                  "none";
+                document.getElementById(`edit-email-${userId}`).style.display =
+                  "none";
+                document.getElementById(
+                  `edit-dept_id-${userId}`
+                ).style.display = "none";
+
+                document.querySelector(
+                  `#user-${userId} button[onclick^="editUser"]`
+                ).style.display = "inline";
+                document.querySelector(
+                  `#user-${userId} button[onclick^="saveUser"]`
+                ).style.display = "none";
+
+                alert("User updated successfully");
+              } else {
+                alert("Failed to update user");
+              }
+            });
+        }
       }
 
       // clear cookies function
