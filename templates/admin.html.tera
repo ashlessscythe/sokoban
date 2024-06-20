@@ -1,6 +1,114 @@
 <html>
   <head>
     <title>Admin Dashboard</title>
+    <script src="../static/js/helpers.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+
+      h1,
+      h2 {
+        color: #333;
+      }
+
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      tr:hover {
+        background-color: #ddd;
+      }
+
+      .confirmation-dialog {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        border: 1px solid #ccc;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+      }
+
+      #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+
+      .toast {
+        background-color: #333;
+        color: #fff;
+        padding: 10px 20px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      }
+
+      @keyframes fadein {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeout {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+
+      section {
+        margin-bottom: 40px;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+
+      section h2 {
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 10px;
+      }
+    </style>
   </head>
   <body>
     <h1>Admin Dashboard</h1>
@@ -60,18 +168,75 @@
           <th>Action</th>
         </tr>
         {% for user in users %}
-        <tr>
+        <tr id="user-{{ user.user_id }}">
           <td>{{ user.user_id }}</td>
-          <td>{{ user.name }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.dept_id }}</td>
+          <td>
+            <span id="name-{{ user.user_id }}">{{ user.name }}</span>
+            <input
+              type="text"
+              id="edit-name-{{ user.user_id }}"
+              value="{{ user.name }}"
+              style="display: none"
+            />
+          </td>
+          <td>
+            <span id="email-{{ user.user_id }}">{{ user.email }}</span>
+            <input
+              type="text"
+              id="edit-email-{{ user.user_id }}"
+              value="{{ user.email }}"
+              style="display: none"
+            />
+          </td>
+          <td>
+            <span id="dept_id-{{ user.user_id }}">{{ user.dept_id }}</span>
+            <input
+              type="text"
+              id="edit-dept_id-{{ user.user_id }}"
+              value="{{ user.dept_id }}"
+              style="display: none"
+            />
+          </td>
           <td>
             <button onclick="editUser('{{ user.user_id }}')">Edit</button>
+            <button
+              onclick="saveUser('{{ user.user_id }}')"
+              style="display: none"
+            >
+              Save
+            </button>
+            <button
+              onclick="confirmAction('In', '{{ user.user_id }}', '{{
+                user.name
+              }}')"
+            >
+              Force Check-in
+            </button>
+            <button
+              onclick="confirmAction('Out', '{{ user.user_id }}', '{{
+                user.name
+              }}')"
+            >
+              Force Check-out
+            </button>
           </td>
         </tr>
         {% endfor %}
       </table>
+      <!-- Confirmation Dialog -->
+      <div
+        id="confirmation-dialog"
+        class="confirmation-dialog"
+        style="display: none"
+      >
+        <p id="confirmation-message"></p>
+        <button id="confirm-yes" onclick="handleConfirmation(true)">Yes</button>
+        <button id="confirm-no" onclick="handleConfirmation(false)">No</button>
+      </div>
     </section>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 
     <script>
       console.log("Admin Dashboard loaded");
@@ -177,9 +342,138 @@
       }
 
       function editUser(userId) {
-        alert("In progress");
-        // For demonstration, navigate to the edit user route
-        // window.location.href = `/admin/edit/${userId}`;
+        document.getElementById(`name-${userId}`).style.display = "none";
+        document.getElementById(`email-${userId}`).style.display = "none";
+        document.getElementById(`dept_id-${userId}`).style.display = "none";
+
+        document.getElementById(`edit-name-${userId}`).style.display = "inline";
+        document.getElementById(`edit-email-${userId}`).style.display =
+          "inline";
+        document.getElementById(`edit-dept_id-${userId}`).style.display =
+          "inline";
+
+        document.querySelector(
+          `#user-${userId} button[onclick^="editUser"]`
+        ).style.display = "none";
+        document.querySelector(
+          `#user-${userId} button[onclick^="saveUser"]`
+        ).style.display = "inline";
+      }
+
+      function saveUser(userId) {
+        let name = document.getElementById(`edit-name-${userId}`).value;
+        let email = document.getElementById(`edit-email-${userId}`).value;
+        let dept_id = parseInt(
+          document.getElementById(`edit-dept_id-${userId}`).value,
+
+          10
+        );
+
+        // Confirm changes
+        if (
+          confirm(
+            `Save changes for User ${userId}?\nName: ${name}\nEmail: ${email}\nDept ID: ${dept_id}`
+          )
+        ) {
+          // Perform AJAX request to update user data
+          fetch(`/admin/update_user/${userId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: name,
+              email: email,
+              dept_id: dept_id,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                // Update the display with new values
+                document.getElementById(`name-${userId}`).textContent = name;
+                document.getElementById(`email-${userId}`).textContent = email;
+                document.getElementById(`dept_id-${userId}`).textContent =
+                  dept_id;
+
+                document.getElementById(`name-${userId}`).style.display =
+                  "inline";
+                document.getElementById(`email-${userId}`).style.display =
+                  "inline";
+                document.getElementById(`dept_id-${userId}`).style.display =
+                  "inline";
+
+                document.getElementById(`edit-name-${userId}`).style.display =
+                  "none";
+                document.getElementById(`edit-email-${userId}`).style.display =
+                  "none";
+                document.getElementById(
+                  `edit-dept_id-${userId}`
+                ).style.display = "none";
+
+                document.querySelector(
+                  `#user-${userId} button[onclick^="editUser"]`
+                ).style.display = "inline";
+                document.querySelector(
+                  `#user-${userId} button[onclick^="saveUser"]`
+                ).style.display = "none";
+
+                alert("User updated successfully");
+              } else {
+                alert("Failed to update user");
+              }
+            });
+        }
+      }
+
+      function showToast(message) {
+        // Create a toast element
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.textContent = message;
+
+        // Get the toast container and append the toast to it
+        const toastContainer = document.getElementById("toast-container");
+        toastContainer.appendChild(toast);
+
+        // Remove the toast after 3 seconds
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
+
+      let currentAction = null;
+      let currentUserId = null;
+
+      function confirmAction(action, userId, userName) {
+        currentAction = action;
+        currentUserId = userId;
+        const message = `Are you sure you want to force ${
+          action === "In" ? "In" : "Out"
+        } for user: ${userName}?`;
+        document.getElementById("confirmation-message").textContent = message;
+        document.getElementById("confirmation-dialog").style.display = "block";
+      }
+
+      function handleConfirmation(confirm) {
+        document.getElementById("confirmation-dialog").style.display = "none";
+        if (confirm) {
+          handleStatusUpdate(currentAction, currentUserId);
+        }
+        currentAction = null;
+        currentUserId = null;
+      }
+
+      async function handleStatusUpdate(status, userId) {
+        try {
+          const responseData = await updateStatus(status, userId);
+          showToast(`Status updated to ${status}`);
+          return responseData;
+        } catch (error) {
+          showToast(error.message);
+          console.error(error.message);
+          throw error;
+        }
       }
 
       // clear cookies function

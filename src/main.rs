@@ -19,8 +19,7 @@ use rocket::{
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use rocket_dyn_templates::{context, Template};
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::Postgres;
-use sqlx::{FromRow, PgPool, Row};
+use sqlx::{FromRow, Postgres, PgPool, Row, Transaction};
 
 use std::{collections::{HashMap, HashSet}, string::ToString};
 use std::iter::FromIterator;
@@ -1006,6 +1005,50 @@ async fn remove_auth_device(
     }
 }
 
+#[derive(Deserialize)]
+struct UpdateUserRequest {
+    name: String,
+    email: String,
+    dept_id: i32,
+}
+
+#[derive(Serialize)]
+struct UserResponse {
+    success: bool,
+    user_id: String,
+    name: String,
+    email: String,
+    dept_id: i32,
+}
+
+#[post("/update_user/<user_id>", data = "<update_user_request>")]
+async fn update_user(user_id: String, update_user_request: Json<UpdateUserRequest>, state: &State<MyState>,
+) -> Result<Json<UserResponse>, BadRequest<String>> {
+
+    // Perform the update in one query
+    sqlx::query(
+        "UPDATE users SET name = $1, email = $2, dept_id = $3 WHERE user_id = $4"
+    )
+    .bind(&update_user_request.name)
+    .bind(&update_user_request.email)
+    .bind(&update_user_request.dept_id)
+    .bind(&user_id)
+    .execute(&state.pool)
+    .await
+    .map_err(|e| BadRequest(format!("Failed to update users table: {}", e)))?;
+
+    // Create response
+    let response = UserResponse {
+        success: true,
+        user_id,
+        name: update_user_request.name.clone(),
+        email: update_user_request.email.clone(),
+        dept_id: update_user_request.dept_id.clone(),
+    };
+
+    Ok(Json(response)) 
+}
+
 // route for edit user
 #[get("/edit/<id>")]
 fn edit_user(id: String) -> Result<Template, BadRequest<String>> {
@@ -1140,7 +1183,7 @@ async fn main() -> Result<(), rocket::Error> {
             "/",
             routes![index, db_check, home, login, login_form, error_page, clear_cookies],
         )
-        .mount("/admin", routes![admin_dashboard, approve_registration, get_auth_devices, remove_auth_device, edit_user])
+        .mount("/admin", routes![admin_dashboard, approve_registration, get_auth_devices, remove_auth_device, update_user, edit_user])
         .register("/", catchers![not_found, internal_error])
         .manage(state);
 

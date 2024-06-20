@@ -244,13 +244,12 @@ async function getLastPunchAndCalculateNewStatus(userId) {
 }
 
 // update status
-async function updateStatus(status, userId, showMessage = true) {
-  const messageDiv = document.getElementById("statusMessage");
-  let punchUrl = `/punch/${encodeURIComponent(userId)}`;
-  device_id = localStorage.getItem("device_id");
+async function updateStatus(status, userId) {
+  const punchUrl = `/punch/${encodeURIComponent(userId)}`;
+  const device_id = localStorage.getItem("device_id");
 
   try {
-    let punchResponse = await fetch(punchUrl, {
+    const punchResponse = await fetch(punchUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -258,36 +257,46 @@ async function updateStatus(status, userId, showMessage = true) {
       body: JSON.stringify({ device_id: device_id, in_out: status }),
     });
 
-    if (punchResponse.ok) {
-      if (showMessage) {
-        messageDiv.textContent = `Status updated to ${status}`;
-        await wait(2000);
-        messageDiv.textContent = "";
-      } else {
-        console.log(`Status updated to ${status}`);
-        messageDiv.textContent = "";
-      }
-      let responseData = await punchResponse.json();
-      return responseData;
-    } else {
-      if (showMessage) {
-        messageDiv.textContent = `Failed to update status: ${punchResponse.statusText}`;
-        await wait(2000);
-        messageDiv.textContent = "";
-      } else {
-        console.error(`Failed to update status: ${punchResponse.statusText}`);
-        messageDiv.textContent = "";
-      }
+    if (!punchResponse.ok) {
       throw new Error(`Failed to update status: ${punchResponse.statusText}`);
     }
+
+    const responseData = await punchResponse.json();
+    return responseData;
+  } catch (error) {
+    throw new Error(`Network error during status update: ${error}`);
+  }
+}
+
+// not used
+async function displayMessage(message, duration = 2000) {
+  const messageDiv = document.getElementById("statusMessage");
+  if (messageDiv) {
+    messageDiv.textContent = message;
+    await wait(duration);
+    messageDiv.textContent = "";
+  } else {
+    console.log(message);
+  }
+}
+
+// not used
+async function updateStatusAndDisplayMessage(
+  status,
+  userId,
+  showMessage = true
+) {
+  try {
+    const responseData = await updateStatus(status, userId);
+    if (showMessage) {
+      await displayMessage(`Status updated to ${status}`);
+    }
+    return responseData;
   } catch (error) {
     if (showMessage) {
-      messageDiv.textContent = `Network error during status update: ${error}`;
-      await wait(2000);
-      messageDiv.textContent = "";
+      await displayMessage(error.message);
     } else {
-      console.error("Network error during status update:", error);
-      messageDiv.textContent = "";
+      console.error(error.message);
     }
     throw error;
   }

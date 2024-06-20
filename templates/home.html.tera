@@ -235,13 +235,13 @@
             if (countdown <= 0) {
               clearInterval(interval);
               // false to reload after countdown ends
-              updateStatus(oppositeStatus, userId, false);
+              updateStatus(oppositeStatus, userId);
               window.location.reload();
             }
           }, 1000);
         } else {
           setTimeout(() => {
-            updateStatus(oppositeStatus, userId, false);
+            updateStatus(oppositeStatus, userId);
             window.location.reload();
           }, timeoutSeconds * 1000);
         }

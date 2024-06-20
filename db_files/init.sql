@@ -1,6 +1,6 @@
 -- initial_setup.sql
 -- here be dragons
--- drop table if exists punches, users, departments cascade;
+-- drop table if exists punches, users, departments, admin_users, auth_devices, checklist_status cascade;
 -- here end dragons
 
 -- Extensions
@@ -36,33 +36,52 @@ CREATE TABLE IF NOT EXISTS departments (
 -- Punches Table
 CREATE TABLE IF NOT EXISTS punches (
   id SERIAL PRIMARY KEY,
-  user_id VARCHAR(36) REFERENCES users(user_id),
+  user_id VARCHAR(36),
   in_out punch NOT NULL,
   device_id VARCHAR(255) DEFAULT NULL,
-  punch_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  punch_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT punches_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE
 );
 
 -- Insert default department (check if exists before inserting)
 INSERT INTO departments (name)
-SELECT 'Default'
+SELECT 'Dept1'
 WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Default');
+
+-- Insert department 2 (check if exists before inserting)
+INSERT INTO departments (id, name)
+SELECT 2, 'Dept2'
+WHERE NOT EXISTS (SELECT 1 FROM departments WHERE id = 2);
+
+-- Insert department 3 (check if exists before inserting)
+INSERT INTO departments (id, name)
+SELECT 3, 'Dept3'
+WHERE NOT EXISTS (SELECT 1 FROM departments WHERE id = 3);
+
+-- Insert department 4 (check if exists before inserting)
+INSERT INTO departments (id, name)
+SELECT 4, 'Dept4'
+WHERE NOT EXISTS (SELECT 1 FROM departments WHERE id = 4);
 
 -- Checklist Status Table
 CREATE TABLE IF NOT EXISTS checklist_status (
   id SERIAL PRIMARY KEY,
-  user_id VARCHAR(36) REFERENCES users(user_id),
-  drill_id INTEGER NOT NULL, -- Assuming you always have a drill_id
+  user_id INTEGER NOT NULL,
+  drill_id INTEGER NOT NULL,
   found BOOLEAN DEFAULT FALSE,
-  check_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, drill_id) -- Add this line to create the composite unique constraint
+  check_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT checklist_status_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE,
+  CONSTRAINT checklist_status_user_id_drill_id_key UNIQUE (user_id, drill_id)
 );
 
--- admin users table
+-- Admin Users Table
 CREATE TABLE IF NOT EXISTS admin_users (
   id SERIAL PRIMARY KEY,
   user_id VARCHAR(36) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT admin_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE
 );
+
 
 -- auth devices table
 CREATE TABLE IF NOT EXISTS auth_devices (
