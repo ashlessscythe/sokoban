@@ -31,10 +31,7 @@
       </button>
       <h1>User Statuses (Last 24-hrs)</h1>
     </div>
-    <div
-      class="table-container"
-      style="height: 60vh; min-height: 200px; overflow: auto"
-    >
+    <div class="table-container">
       <table>
         <thead>
           <tr>
@@ -70,73 +67,3 @@
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
 </script>
-
-<style>
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  table,
-  th,
-  td {
-    border: 2px double #ddd; /* Double lines for grid */
-  }
-
-  th,
-  td {
-    padding: 8px;
-    text-align: left;
-  }
-
-  th {
-    background-color: #f2f2f2;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-
-  th:after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: inherit;
-    backdrop-filter: blur(5px);
-    z-index: -1;
-  }
-
-  tr:hover {
-    background-color: #e8e8e8; /* Highlight on hover */
-  }
-  .circle-button {
-    display: block;
-    width: 50px;
-    height: 50px;
-    margin-bottom: 20px;
-    border-radius: 50%;
-    overflow: hidden;
-    padding: 0;
-    border: none;
-    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-  }
-
-  .circle-button:hover {
-    transform: translateY(-5px);
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
-  }
-
-  .circle-button img {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  /* This is a class to format the date, we'll add it in the <td> tag */
-  .iso-date {
-    white-space: nowrap; /* Prevents wrapping */
-  }
-</style>

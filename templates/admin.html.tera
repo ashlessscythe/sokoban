@@ -1,6 +1,7 @@
 <html>
   <head>
     <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="../static/css/style.css" />
     <script src="../static/js/helpers.js"></script>
     <style>
       body {
@@ -158,80 +159,86 @@
     </section>
 
     <section>
-      <h2>Users</h2>
-      <table>
-        <tr>
-          <th>User ID</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Department ID</th>
-          <th>Action</th>
-        </tr>
-        {% for user in users %}
-        <tr id="user-{{ user.user_id }}">
-          <td>{{ user.user_id }}</td>
-          <td>
-            <span id="name-{{ user.user_id }}">{{ user.name }}</span>
-            <input
-              type="text"
-              id="edit-name-{{ user.user_id }}"
-              value="{{ user.name }}"
-              style="display: none"
-            />
-          </td>
-          <td>
-            <span id="email-{{ user.user_id }}">{{ user.email }}</span>
-            <input
-              type="text"
-              id="edit-email-{{ user.user_id }}"
-              value="{{ user.email }}"
-              style="display: none"
-            />
-          </td>
-          <td>
-            <span id="dept_id-{{ user.user_id }}">{{ user.dept_id }}</span>
-            <input
-              type="text"
-              id="edit-dept_id-{{ user.user_id }}"
-              value="{{ user.dept_id }}"
-              style="display: none"
-            />
-          </td>
-          <td>
-            <button onclick="editUser('{{ user.user_id }}')">Edit</button>
-            <button
-              onclick="saveUser('{{ user.user_id }}')"
-              style="display: none"
-            >
-              Save
-            </button>
-            <button
-              onclick="confirmAction('In', '{{ user.user_id }}', '{{
-                user.name
-              }}')"
-            >
-              Force Check-in
-            </button>
-            <button
-              onclick="confirmAction('Out', '{{ user.user_id }}', '{{
-                user.name
-              }}')"
-            >
-              Force Check-out
-            </button>
-          </td>
-        </tr>
-        {% endfor %}
-      </table>
-      <!-- Confirmation Dialog -->
-      <div
-        id="confirmation-dialog"
-        class="confirmation-dialog"
-        style="display: none"
-      >
-        <p id="confirmation-message"></p>
-        <button id="confirm-yes" onclick="handleConfirmation(true)">Yes</button>
-        <button id="confirm-no" onclick="handleConfirmation(false)">No</button>
+      <div class="table-container">
+        <h2>Users</h2>
+        <table>
+          <tr>
+            <th>User ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Department ID</th>
+            <th>Action</th>
+          </tr>
+          {% for user in users %}
+          <tr id="user-{{ user.user_id }}">
+            <td>{{ user.user_id }}</td>
+            <td>
+              <span id="name-{{ user.user_id }}">{{ user.name }}</span>
+              <input
+                type="text"
+                id="edit-name-{{ user.user_id }}"
+                value="{{ user.name }}"
+                style="display: none"
+              />
+            </td>
+            <td>
+              <span id="email-{{ user.user_id }}">{{ user.email }}</span>
+              <input
+                type="text"
+                id="edit-email-{{ user.user_id }}"
+                value="{{ user.email }}"
+                style="display: none"
+              />
+            </td>
+            <td>
+              <span id="dept_id-{{ user.user_id }}">{{ user.dept_id }}</span>
+              <input
+                type="text"
+                id="edit-dept_id-{{ user.user_id }}"
+                value="{{ user.dept_id }}"
+                style="display: none"
+              />
+            </td>
+            <td>
+              <button onclick="editUser('{{ user.user_id }}')">Edit</button>
+              <button
+                onclick="saveUser('{{ user.user_id }}')"
+                style="display: none"
+              >
+                Save
+              </button>
+              <button
+                onclick="confirmAction('In', '{{ user.user_id }}', '{{
+                  user.name
+                }}')"
+              >
+                Force Check-in
+              </button>
+              <button
+                onclick="confirmAction('Out', '{{ user.user_id }}', '{{
+                  user.name
+                }}')"
+              >
+                Force Check-out
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+        <!-- Confirmation Dialog -->
+        <div
+          id="confirmation-dialog"
+          class="confirmation-dialog"
+          style="display: none"
+        >
+          <p id="confirmation-message"></p>
+          <button id="confirm-yes" onclick="handleConfirmation(true)">
+            Yes
+          </button>
+          <button id="confirm-no" onclick="handleConfirmation(false)">
+            No
+          </button>
+        </div>
       </div>
     </section>
 

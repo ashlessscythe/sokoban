@@ -1,4 +1,5 @@
-/* static/css/style.css */
+/* Existing CSS content */
+
 body {
   font-family: Arial, sans-serif;
   margin: 40px;
@@ -30,10 +31,91 @@ h1 {
   box-sizing: border-box; /* Include padding in width calculation */
 }
 
-.form-container input,
-.form-container button,
 .table-container {
-  width: 100%; /* Make input and button take full width of the form container */
+  height: 60vh;
+  min-height: 200px;
+  overflow: auto;
+  width: 100%; /* Make the table container take full width */
+  padding: 15px; /* Padding inside the container */
+  margin-bottom: 20px; /* Margin between items */
+  box-sizing: border-box; /* Include padding in width calculation */
+  border: 1px solid #ccc; /* Border for the container */
+  border-radius: 4px; /* Rounded corners for the container */
+  overflow-x: auto; /* Enable horizontal scrolling */
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-container table,
+.table-container th,
+.table-container td {
+  border: 2px double #ddd; /* Double lines for grid */
+}
+
+.table-container th,
+.table-container td {
+  padding: 8px;
+  text-align: left;
+}
+
+.table-container th {
+  background-color: #f2f2f2;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table-container th:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  backdrop-filter: blur(5px);
+  z-index: -1;
+}
+
+.table-container tr:hover {
+  background-color: #e8e8e8; /* Highlight on hover */
+}
+
+.circle-button {
+  display: block;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.circle-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.circle-button img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* This is a class to format the date, we'll add it in the <td> tag */
+.iso-date {
+  white-space: nowrap; /* Prevents wrapping */
+}
+
+.form-container input,
+.form-container button {
+  width: 60%; /* Make input and button take full width of the form container */
   padding: 15px; /* Padding inside input and button */
   margin-bottom: 20px; /* Margin between form items */
   box-sizing: border-box; /* Include padding in width calculation */
@@ -54,7 +136,6 @@ h1 {
 }
 
 .block-button {
-  /* Add your button styling here */
   font-size: 20px;
   padding: 15px 30px; /* Example padding */
   width: auto;
@@ -63,12 +144,9 @@ h1 {
   border-radius: 5px;
   cursor: pointer;
   background-color: #a7c7e7; /* Example background color */
-  border: none; /* Example border removal */
-  cursor: pointer; /* Changes the cursor on hover */
   transition: background-color 0.3s; /* Smooth background color transition on hover */
 }
-
-.block-button:hover {
+ggjj .block-button:hover {
   background-color: #85d8ce; /* Example hover background color */
 }
 
@@ -78,7 +156,7 @@ h1 {
   top: 50%;
   left: 50%;
   width: 60vw; /* 60% of the viewport width */
-  height: 30vw; /* 60% of the viewport width, adjust height as needed */
+  height: 30vw; /* 30% of the viewport width, adjust height as needed */
   transform: translate(-50%, -50%); /* Center the square */
   background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
   display: flex;
@@ -94,15 +172,217 @@ h1 {
 
 /* Loading Dots */
 .loading-dots::after {
-  content: '...';
+  content: "...";
   font-size: 40px;
   animation: loadingDots 1.5s infinite;
   letter-spacing: 15px;
 }
 
 @keyframes loadingDots {
-  0% { content: '.'; }
-  33% { content: '..'; }
-  66% { content: '...'; }
+  0% {
+    content: ".";
+  }
+  33% {
+    content: "..";
+  }
+  66% {
+    content: "...";
+  }
 }
 
+.img-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.img-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Ensures aspect ratio is maintained */
+}
+
+.button-container {
+  width: 100%;
+  text-align: center;
+}
+
+ul.horizontal-buttons {
+  list-style-type: none; /* Removes bullet points */
+  padding: 0; /* Removes default padding */
+  display: flex;
+  justify-content: center; /* Aligns the buttons to the center */
+  gap: 10px; /* Optional: adds some space between the buttons */
+}
+
+li.horizontal-buttons {
+  display: inline-block; /* Align items horizontally */
+  margin-right: 10px; /* Optional: adds some space between the buttons */
+}
+
+.logo-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 10px;
+}
+
+.logo-container img {
+  width: 150px; /* Adjust the width as needed */
+  height: auto;
+}
+
+#message-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+.circle-button {
+  display: block;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.circle-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.circle-button img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.update-button-container {
+  text-align: center;
+  align-items: center;
+}
+
+.centered-button {
+  display: block;
+  margin: 20px auto;
+  font-size: 20px;
+  width: auto;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #a7c7e7; /* Example background color */
+  transition: background-color 0.3s; /* Smooth background color transition on hover */
+}
+
+.refresh-button {
+  display: block;
+  margin: 20px auto;
+  font-size: 20px;
+  width: auto;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #a7c7e7; /* Example background color */
+  transition: background-color 0.3s; /* Smooth background color transition on hover */
+}
+
+/* This is a class to format the date, we'll add it in the <td> tag */
+.iso-date {
+  white-space: nowrap; /* Prevents wrapping */
+}
+
+.toast {
+  background-color: #04aa6d; /* Green background */
+  color: white; /* White text color */
+  padding: 16px; /* Some padding */
+  border-radius: 8px; /* Rounded corners */
+  margin-top: 10px; /* Space between toasts */
+  animation: fadeinout 4s;
+}
+
+@keyframes fadeinout {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+}
+
+/* Style for the container div */
+.table-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* This will space the children evenly */
+  padding: 20px; /* Add some padding around */
+  flex-wrap: wrap; /* If you want the items to wrap on small screens */
+}
+
+/* Style for the buttons and dropdown for consistent sizing */
+.table-title > select,
+.table-title > .title {
+  margin: 0 10px; /* Adds margin to left and right for spacing */
+  padding: 10px; /* Padding inside buttons and dropdown */
+  flex: 1; /* Allows items to grow */
+  text-align: center; /* Center the text inside (if it's one line) */
+}
+
+/* If you have a title or something similar, you might not want it to grow like buttons */
+.table-title > .title {
+  flex: none; /* Prevents the title from growing and only takes up necessary space */
+}
+
+/* Further style your select (dropdown) element if needed */
+.table-title > select {
+  cursor: pointer; /* To indicate it's a dropdown */
+}
+
+/* Add additional styling for buttons if necessary */
+.table-title > button {
+  cursor: pointer; /* Indicates the element is clickable */
+  border: 1px solid #ccc; /* Adds a border */
+  background-color: #f8f8f8; /* Adds a background color */
+}
+
+/* Styling for the filter dropdown */
+select #departmentFilter {
+  width: 200px; /* Set the width as per your preference */
+  font-size: 1.2em; /* Larger text for better readability */
+  padding: 10px 15px; /* Adjust padding to make the dropdown taller and text more centered */
+  margin: 0 10px; /* Maintain some space around the dropdown */
+  border: 1px solid #ddd; /* Border to match the overall design */
+  border-radius: 5px; /* Rounded corners for modern look */
+  cursor: pointer; /* Change cursor on hover to signify this is a dropdown */
+}
+
+/* You may also want to style the option elements */
+select #departmentFilter option {
+  font-size: 1.2em; /* Ensure the options text is also larger */
+}
+
+/* Responsive behavior for smaller screens */
+@media (max-width: 768px) {
+  .table-title > button,
+  .table-title > select,
+  .table-title > .title {
+    margin: 5px 0; /* Stack them with vertical space on small screens */
+  }
+}
