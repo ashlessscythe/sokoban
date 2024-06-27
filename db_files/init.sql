@@ -25,14 +25,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Departments Table
-CREATE TABLE IF NOT EXISTS departments (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  bossId VARCHAR(36),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Punches Table
 CREATE TABLE IF NOT EXISTS punches (
   id SERIAL PRIMARY KEY,
@@ -43,25 +35,21 @@ CREATE TABLE IF NOT EXISTS punches (
   CONSTRAINT punches_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE
 );
 
+-- Departments Table
+CREATE TABLE IF NOT EXISTS departments (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  bossId VARCHAR(36),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert default department (check if exists before inserting)
 INSERT INTO departments (name)
 SELECT 'Dept1'
 WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Default');
 
--- Insert department 2 (check if exists before inserting)
-INSERT INTO departments (id, name)
-SELECT 2, 'Dept2'
-WHERE NOT EXISTS (SELECT 1 FROM departments WHERE id = 2);
-
--- Insert department 3 (check if exists before inserting)
-INSERT INTO departments (id, name)
-SELECT 3, 'Dept3'
-WHERE NOT EXISTS (SELECT 1 FROM departments WHERE id = 3);
-
--- Insert department 4 (check if exists before inserting)
-INSERT INTO departments (id, name)
-SELECT 4, 'Dept4'
-WHERE NOT EXISTS (SELECT 1 FROM departments WHERE id = 4);
+-- Insert other initial depts using below file
+-- starting_data.sql
 
 -- Checklist Status Table
 CREATE TABLE IF NOT EXISTS checklist_status (
