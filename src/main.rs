@@ -3,7 +3,6 @@ extern crate rocket;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::US::Mountain;
 use cookie::time::Duration;
-use rocket::http::ext::IntoOwned;
 use rocket::http::Method;
 use rocket::{
     form::Form,
@@ -20,7 +19,7 @@ use rocket::{
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use rocket_dyn_templates::{context, Template};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Postgres, PgPool, Row, Transaction};
+use sqlx::{FromRow, Postgres, PgPool, Row};
 
 use std::{collections::{HashMap, HashSet}, string::ToString};
 use std::iter::FromIterator;
@@ -1050,7 +1049,7 @@ async fn update_user(user_id: String, update_user_request: Json<UpdateUserReques
     )
     .bind(&update_user_request.name)
     .bind(&update_user_request.email)
-    .bind(&update_user_request.dept_id)
+    .bind(update_user_request.dept_id)
     .bind(&user_id)
     .execute(&state.pool)
     .await
@@ -1062,7 +1061,7 @@ async fn update_user(user_id: String, update_user_request: Json<UpdateUserReques
         user_id,
         name: update_user_request.name.clone(),
         email: update_user_request.email.clone(),
-        dept_id: update_user_request.dept_id.clone(),
+        dept_id: update_user_request.dept_id,
     };
 
     Ok(Json(response)) 
