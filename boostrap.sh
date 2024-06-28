@@ -18,6 +18,9 @@ sudo apt-get remove -y pgcli
 # Ensure Python pip is installed
 sudo apt-get install -y python3-pip
 
+# upgrade pip
+pip3 install --upgrade pip
+
 # Install pgcli via pip
 pip3 install pgcli
 
