@@ -19,7 +19,7 @@ use rocket::{
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use rocket_dyn_templates::{context, Template};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Postgres, PgPool, Row, Transaction};
+use sqlx::{FromRow, Postgres, PgPool, Row};
 
 use std::{collections::{HashMap, HashSet}, string::ToString};
 use std::iter::FromIterator;
@@ -179,8 +179,8 @@ impl<'r> FromRequest<'r> for Authenticated {
         if uri.path().starts_with("/admin") {
             // Admin path logic
             match cookies.get_private("user_token") {
-                Some(user_token_cookie) => {
-                    if is_admin(user_token_cookie.value(), db_pool.into()).await {
+                Some(token) => {
+                    if is_admin(token.value(), db_pool.into()).await {
                         rocket::request::Outcome::Success(Authenticated)
                     } else {
                         rocket::request::Outcome::Error((Status::Unauthorized, ()))
@@ -348,7 +348,7 @@ async fn userlist(
         Some(_) => {
             // User is authenticated
             println!("user is authenticated");
-            match user_list(state).await {
+            match user_list(_auth, state).await {
                 Ok(users) => {
                     let mut context = HashMap::new();
                     context.insert("users", users.into_inner());
@@ -463,7 +463,7 @@ async fn get_status_list(state: &State<MyState>) -> Result<Template, Status> {
             UserStatusDisplay {
                 temp_id: func::generate_temp_id(&status.user_id),
                 name: status.name,
-                in_out: status.in_out,
+                in_out: serde_json::to_string(&status.in_out).unwrap().trim_matches('"').to_string(), // Serialize in_out
                 last_punch_time: formatted_time, // This will now be a String
                 dept_name: status.dept_name,
                 drill_id: None,
@@ -713,24 +713,42 @@ async fn update_found_status(
 
 // list of all users
 #[get("/users")]
-async fn user_list(state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<String>> {
-    let list = sqlx::query_as("SELECT * FROM users")
-        .fetch_all(&state.pool)
-        .await
-        .map_err(|e| BadRequest(e.to_string()))?;
-    Ok(Json(list))
+async fn user_list(auth: Option<Authenticated>, state: &State<MyState>) -> Result<Json<Vec<User>>, BadRequest<String>> {
+    match auth {
+        Some(_) => {
+            let list = sqlx::query_as("SELECT * FROM users")
+            .fetch_all(&state.pool)
+            .await
+            .map_err(|e| BadRequest(e.to_string()))?;
+            Ok(Json(list))
+        }
+        None => {
+            // user not authenticated
+            eprintln!("User not authenticated for route /users");
+            Err(BadRequest("User not authenticated".to_string()))
+        }
+    }
 }
 
 // list all punches
 #[get("/punches")]
 async fn punches_list(
+    auth: Option<Authenticated>,
     state: &State<MyState>,
 ) -> Result<Json<Vec<PunchWithUser>>, BadRequest<String>> {
-    let list: Vec<PunchWithUser> = sqlx::query_as("SELECT * FROM punches_with_user")
-        .fetch_all(&state.pool)
-        .await
-        .map_err(|e| BadRequest(e.to_string()))?;
-    Ok(Json(list))
+    match auth {
+        Some(_) => {
+            let list: Vec<PunchWithUser> = sqlx::query_as("SELECT * FROM punches_with_user")
+            .fetch_all(&state.pool)
+            .await
+            .map_err(|e| BadRequest(e.to_string()))?;
+             Ok(Json(list))
+        }
+        None => {
+            eprintln!("User not authenticated for route /punches");
+            Err(BadRequest("User not authenticated".to_string()))
+        }
+    }
 }
 
 // get one user
@@ -1031,7 +1049,7 @@ async fn update_user(user_id: String, update_user_request: Json<UpdateUserReques
     )
     .bind(&update_user_request.name)
     .bind(&update_user_request.email)
-    .bind(&update_user_request.dept_id)
+    .bind(update_user_request.dept_id)
     .bind(&user_id)
     .execute(&state.pool)
     .await
@@ -1043,7 +1061,7 @@ async fn update_user(user_id: String, update_user_request: Json<UpdateUserReques
         user_id,
         name: update_user_request.name.clone(),
         email: update_user_request.email.clone(),
-        dept_id: update_user_request.dept_id.clone(),
+        dept_id: update_user_request.dept_id,
     };
 
     Ok(Json(response)) 
@@ -1068,7 +1086,7 @@ async fn admin_dashboard(auth: Option<Authenticated>, db_pool: &State<MyState>) 
                 vec![]  // Return an empty vector if there's an error
             });
 
-            let users_result= user_list(db_pool).await;
+            let users_result= user_list(auth, db_pool).await;
             let users = match users_result {
                 Ok(users) => users.into_inner(),
                 Err(_e) => {
@@ -1173,7 +1191,7 @@ async fn main() -> Result<(), rocket::Error> {
         .attach(cors)
         .attach(Template::fairing())
         .mount("/user", routes![retrieve, add, add_bulk])
-        // .mount("/list", routes![user_list, punches_list]) // comment out for deployed
+        .mount("/list", routes![user_list, punches_list])
         .mount("/punch", routes![punch, last_punch, count_punches, get_user_punches])
         .mount("/status", routes![status_list, checklist, update_found_status])
         .mount("/register", routes![register_get, register_post])
@@ -1271,7 +1289,7 @@ struct UserChecklistDisplay {
 struct UserStatusDisplay {
     temp_id: String,
     name: String,
-    in_out: InOut,
+    in_out: String,
     last_punch_time: String, // Now it's a String to hold the formatted date
     dept_name: String,
     drill_id: Option<i32>,

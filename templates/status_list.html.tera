@@ -5,6 +5,8 @@
     <title>User Statuses</title>
     <link rel="stylesheet" href="../static/css/style.css" />
     <script src="../static/js/helpers.js"></script>
+    <!-- Add this script tag to include xlsx library for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
   </head>
   <body>
     <div style="display: flex; align-items: center">
@@ -51,6 +53,9 @@
         </tbody>
       </table>
     </div>
+    <!-- Add buttons for CSV and Excel download -->
+    <button onclick="downloadCSV()">Download CSV</button>
+    <button onclick="downloadExcel()">Download Excel</button>
     <button
       class="block-button"
       onclick="location.href='/home'"
@@ -66,4 +71,49 @@
   console.log(
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
+
+  function downloadCSV() {
+    const headers = document.querySelectorAll("thead tr th");
+    const rows = document.querySelectorAll("#table-body tr");
+
+    let csvContent = "";
+
+    // Add headers to CSV content
+    const headerArray = Array.from(headers).map((header) => header.innerText);
+    csvContent += headerArray.join(",") + "\n";
+
+    // Add rows to CSV content
+    rows.forEach((row) => {
+      const cols = row.querySelectorAll("td");
+      const data = Array.from(cols)
+        .map((col) => col.innerText)
+        .join(",");
+      csvContent += data + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.setAttribute("hidden", "");
+    a.setAttribute("href", url);
+    a.setAttribute("download", "status_list.csv");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function downloadExcel() {
+    const table = document.getElementById("table-body");
+    const tableClone = table.cloneNode(true);
+
+    // Include thead in the cloned table
+    const thead = document.querySelector("thead");
+    const theadClone = thead.cloneNode(true);
+    tableClone.prepend(theadClone);
+
+    const worksheet = XLSX.utils.table_to_sheet(tableClone);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Status List");
+    XLSX.writeFile(workbook, "status_list.xlsx");
+  }
 </script>
