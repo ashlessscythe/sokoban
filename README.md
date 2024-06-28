@@ -38,6 +38,7 @@ A web application built with Rocket, Tera, and SQLx for managing user statuses a
    LAST_PUNCH_HOURS=24
    COMPANY_LOGO_URL=imgur/imgbb/logo/localfile
    UNSPLASH_ACCESS_KEY=your_unsplash_access_key_here
+
    ```
 
 3. Modify the values in the `.env` file as necessary.
