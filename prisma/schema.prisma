@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model admin_users {
+  id         Int       @id @default(autoincrement())
+  user_id    String    @db.VarChar(36)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction)
+}
+
+model auth_devices {
+  id          Int       @id @default(autoincrement())
+  device_id   String    @db.VarChar(255)
+  device_name String?   @default("No Name") @db.VarChar(255)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model checklist_status {
+  id         Int       @id @default(autoincrement())
+  user_id    String?   @db.VarChar(36)
+  drill_id   Int
+  found      Boolean?  @default(false)
+  check_time DateTime? @default(now()) @db.Timestamp(6)
+  users      users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction)
+
+  @@unique([user_id, drill_id])
+}
+
+model departments {
+  id                               Int       @id @default(autoincrement())
+  name                             String    @db.VarChar(255)
+  bossid                           String?   @db.VarChar(36)
+  created_at                       DateTime? @default(now()) @db.Timestamp(6)
+  users_departments_bossidTousers  users?    @relation("departments_bossidTousers", fields: [bossid], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_users_dept_idTodepartments users[]   @relation("users_dept_idTodepartments")
+}
+
+model punches {
+  id         Int       @id @default(autoincrement())
+  user_id    String?   @db.VarChar(36)
+  in_out     punch
+  device_id  String?   @db.VarChar(255)
+  punch_time DateTime? @default(now()) @db.Timestamp(6)
+  users      users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction)
+}
+
+model registrations {
+  id         Int       @id @default(autoincrement())
+  name       String    @db.VarChar(36)
+  email      String    @db.VarChar(255)
+  device_id  String?   @default("No Device ID") @db.VarChar(255)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model users {
+  user_id                                String             @id @default(dbgenerated("uuid_generate_v4()")) @db.VarChar(36)
+  name                                   String             @db.VarChar(255)
+  email                                  String             @db.VarChar(255)
+  dept_id                                Int?               @default(1)
+  profile_picture                        String?            @db.VarChar(255)
+  created_at                             DateTime?          @default(now()) @db.Timestamp(6)
+  admin_users                            admin_users[]
+  checklist_status                       checklist_status[]
+  departments_departments_bossidTousers  departments[]      @relation("departments_bossidTousers")
+  punches                                punches[]
+  departments_users_dept_idTodepartments departments?       @relation("users_dept_idTodepartments", fields: [dept_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dept_id")
+}
+
+enum punch {
+  in
+  out
+}

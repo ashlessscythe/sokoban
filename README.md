@@ -66,6 +66,35 @@ The application requires the following environment variables to be set in the `.
 - `COMPANY_LOGO_URL`: The URL to the company logo image. (can be local file or URL)
 - `UNSPLASH_ACCESS_KEY`: The access key for the Unsplash API to fetch random images.
 
+## Prisma installation and setup
+
+- npm install
+- Make sure DATABASE_URL is set in your .env
+- npx prisma generate
+- OR
+- npx prisma introspect ## to get the current db schema
+
+## Instructions for Each Script
+
+1. **`exportToCsv.js`**:
+
+   - Exports data from a specified table to a CSV file.
+   - Usage: `node prisma_scripts/exportToCsv.js <table_name>`
+   - Example: `node prisma_scripts/exportToCsv.js users`
+
+2. **`updateUserId.js`**:
+
+   - Updates user IDs based on the contents of a CSV file.
+   - CSV Format: Should have columns `old_id` and `new_id`.
+   - Usage: `node prisma_scripts/updateUserId.js <csv_file_path>`
+   - Example: `node prisma_scripts/updateUserId.js ./prisma_scripts/update_user.csv`
+
+3. **`upsertFromCsv.js`**:
+   - Upserts data into the specified table based on the CSV file name and its contents.
+   - CSV Format: Should match the table's structure and have appropriate headers.
+   - Usage: `node prisma_scripts/upsertFromCsv.js <csv_file_path>`
+   - Example: `node prisma_scripts/upsertFromCsv.js ./prisma_scripts/users.csv`
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -4,5 +4,7 @@ Secrets*.toml
 .env
 ignoreme/
 *.dump
+node_modules/
 csv-export/
+prisma_scripts/*.csv
 *.csv
