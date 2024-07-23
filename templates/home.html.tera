@@ -169,7 +169,11 @@
 
             cancelInputClearTimer();
 
+            // get from .env or default to puppy
+            const image_query = "{{ unsplash_image_query }}" || "cat";
+
             const oppositeStatus = userStatus === "In" ? "Out" : "In";
+            // call
             initiateCountdownAndStatusUpdate(
               userName,
               userStatus,
@@ -177,7 +181,7 @@
               userId,
               (timeoutSeconds = 2),
               (showCountdown = false),
-              (imageQuery = "puppy")
+              (imageQuery = image_query)
             );
           } catch (error) {
             console.error("Fetch error:", error);
@@ -194,6 +198,7 @@
         return data.urls.small;
       }
 
+      // define
       async function initiateCountdownAndStatusUpdate(
         userName,
         userStatus,

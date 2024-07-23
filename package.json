@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "prisma": "^5.16.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.16.2",
+    "csv-parser": "^3.0.0",
+    "csv-writer": "^1.6.0"
+  }
+}

@@ -912,12 +912,15 @@ fn home() -> Result<Template, BadRequest<String>> {
     // Load the environment variable
     dotenv::dotenv().ok();
 
-    let company_logo_url = std::env::var("COMPANY_LOGO_URL").expect("COMPANY_LOGO_URL must be set");
+    let company_logo_url = std::env::var("COMPANY_LOGO_URL").unwrap_or("./static/images/logo.png".to_string());
     let unsplash_access_key = std::env::var("UNSPLASH_ACCESS_KEY").expect("UNSPLASH_ACCESS_KEY must be set");
+    // from .env or default to "cat" 
+    let unsplash_image_query = std::env::var("UNSPLASH_IMAGE_QUERY").unwrap_or("cat".to_string());
     let mut context = HashMap::new();
     context.insert("title", "Home");
     context.insert("company_logo_url", &company_logo_url);
     context.insert("unsplash_access_key", &unsplash_access_key);
+    context.insert("unsplash_image_query", &unsplash_image_query);
     Ok(Template::render("home", &context))
 }
 
