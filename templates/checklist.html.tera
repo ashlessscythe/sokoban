@@ -37,9 +37,9 @@
           <option value="{{ dept_name }}">{{ dept_name }}</option>
         {% endfor %}
       </select>
-      <button class="refresh-button" onclick="callReload()">
-        Refresh List
-      </button>
+    <button class="refresh-button" onclick="callReload()">
+      Refresh List
+    </button>
     </div>
     <div>
       <div id="message-container"></div>
@@ -113,9 +113,19 @@
     "Number of rows: " + document.getElementById("table-body").rows.length
   );
 
+  // Load saved department and set filter on page load
+  window.onload = function() {
+    const savedDepartment = localStorage.getItem('selectedDepartment');
+    if (savedDepartment) {
+      document.getElementById('departmentFilter').value = savedDepartment;
+      filterByDepartment();
+    }
+  };
+
   // for drop-down
   function filterByDepartment() {
     const selectedDepartment = document.getElementById('departmentFilter').value;
+    localStorage.setItem('selectedDepartment', selectedDepartment);
     const tableRows = document.getElementById('table-body').rows;
 
     for (let i = 0; i < tableRows.length; i++) {
@@ -130,8 +140,17 @@
 
   // reload with toast
   function callReload() {
-    location.reload();
-    displaySuccessToast("List refreshed");
+    const currentDepartment = document.getElementById('departmentFilter').value;
+    localStorage.setItem('selectedDepartment', currentDepartment);
+    localStorage.setItem('showRefreshToast', 'true');
+  
+    // Show "Refreshing..." message
+    displayInfoToast("Refreshing...");
+  
+    // Reload the page after a short delay
+    setTimeout(() => {
+      location.reload();
+    }, 500);
   }
 
   // send update for single table row
@@ -180,6 +199,19 @@
       }
     }
   }
+
+  // Function to display info toast
+  function displayInfoToast(message) {
+    const toastContainer = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast info-toast'; // Add 'info-toast' class for styling
+    toast.innerText = message;
+    toastContainer.appendChild(toast);
+    setTimeout(() => {
+      toastContainer.removeChild(toast);
+    }, 2000); // Remove after 2 seconds to ensure it's seen before reload
+  }
+
   // Function to display a success message
   function displaySuccessMessage(message) {
     const messageContainer = document.getElementById("message-container"); // Make sure you have this container in your HTML
@@ -238,6 +270,14 @@
       toastContainer.removeChild(toast);
     }, 4000);
   }
+
+  // Check for refresh toast on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('showRefreshToast') === 'true') {
+      displaySuccessToast("List refreshed");
+      localStorage.removeItem('showRefreshToast');
+    }
+  });
 
   // send update to server
   async function sendUpdate(userId, found, userName) {
