@@ -8,3 +8,8 @@ node_modules/
 csv-export/
 prisma_scripts/*.csv
 *.csv
+
+backups/*.sql
+backups/*.dump
+.env
+.env
