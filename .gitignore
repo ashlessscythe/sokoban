@@ -11,3 +11,4 @@ prisma_scripts/*.csv
 
 backups/*.sql
 backups/*.dump
+.env
